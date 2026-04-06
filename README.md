@@ -147,4 +147,31 @@ MIT —— 可自由修改、分发、商用。
 
 ---
 
+## 👥 Community
+
+### 🤝 如何贡献
+
+欢迎贡献代码、报告问题、提出建议！请阅读：
+
+- [Contributing Guide](CONTRIBUTING.md) —— 完整的提交流程
+- [Code of Conduct](CODE_OF_CONDUCT.md) —— 社区行为准则
+
+### 🐛 报告 Bug
+
+使用 [Bug Report 模板](.github/ISSUE_TEMPLATE/bug_report.md)，提供复现步骤和环境信息。
+
+### 💡 功能请求
+
+使用 [Feature Request 模板](.github/ISSUE_TEMPLATE/feature_request.md)，描述你的需求和使用场景。
+
+### 📝 提交代码
+
+请参考 [Pull Request 模板](.github/PULL_REQUEST_TEMPLATE.md)，确保 PR 描述完整。
+
+### 🔒 安全问题
+
+发现安全漏洞请勿公开提交 Issue，请通过 [GitHub Security Advisory](https://github.com/mochueloxie-sudo/Video-producer/security/advisories) 联系维护者。
+
+---
+
 **Made with ❤️ by TeeClaw**
