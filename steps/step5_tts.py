@@ -279,9 +279,13 @@ def step5_tts(scripts: List[str], context: Dict[str, Any]) -> List[str]:
 
   audio_files = []
   for i, script in enumerate(scripts):
+    # 清理 XML 标记（保留文本内容，移除 <num>/<code> 等标签）
+    import re
+    clean_script = re.sub(r'<[^>]*>', '', script)
+    
     filename = AUDIO_DIR / f"audio-{i+1:02d}.aac"
     print(f"  第 {i+1}/{len(scripts)} 页: {script[:30]}...")
-    if tts.synthesize(script, str(filename)):
+    if tts.synthesize(clean_script, str(filename)):
       audio_files.append(str(filename))
     else:
       print(f"  ⚠️  失败，用静音替代")

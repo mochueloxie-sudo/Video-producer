@@ -73,7 +73,7 @@ class LLMClient:
   def _default_model(self, provider: str) -> str:
     """默认模型"""
     defaults = {
-      "minimax": "minimax-01",
+      "minimax": "MiniMax-M2.7",
       "stepfun": "step-1-8k",
       "openai": "gpt-4o",
       "mock": "mock"
@@ -121,7 +121,7 @@ class LLMClient:
       "-d", json.dumps(payload)
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     if result.returncode != 0:
       raise RuntimeError(f"Minimax API 请求失败: {result.stderr}")
 
@@ -157,7 +157,7 @@ class LLMClient:
       "-d", json.dumps(payload)
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     if result.returncode != 0:
       raise RuntimeError(f"StepFun API 请求失败: {result.stderr}")
 
@@ -168,8 +168,11 @@ class LLMClient:
     choices = data.get("choices", [])
     if not choices:
       raise RuntimeError(f"StepFun 无返回: {data}")
-
-    return choices[0]["message"]["content"].strip()
+    
+    message = choices[0]["message"]
+    # step-3.5-flash 等推理模型返回在 reasoning 字段
+    content = message.get("content") or message.get("reasoning") or ""
+    return content.strip()
 
   def _call_openai(self, prompt: str, system: str, max_tokens: int, temperature: float) -> str:
     """调用 OpenAI API"""
@@ -194,7 +197,7 @@ class LLMClient:
       "-d", json.dumps(payload)
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     if result.returncode != 0:
       raise RuntimeError(f"OpenAI API 请求失败: {result.stderr}")
 

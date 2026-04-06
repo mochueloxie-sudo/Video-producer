@@ -42,12 +42,12 @@ def ensure_screenshots(html_files: List[str]) -> List[str]:
   need_screenshot = []
 
   for html in html_files:
-    png = html.replace('.html', '.png')
+    png = str(html).replace('.html', '.png')
     if not Path(png).exists() or Path(png).stat().st_size < MIN_SIZE:
       need_screenshot.append(html)
 
   if not need_screenshot:
-    return [html.replace('.html', '.png') for html in html_files]
+    return [str(html).replace('.html', '.png') for html in html_files]
 
   print(f"  需要截图 {len(need_screenshot)} 页（检测到占位图或缺失）...")
 
@@ -60,7 +60,7 @@ def ensure_screenshots(html_files: List[str]) -> List[str]:
 
   png_files = []
   for html in html_files:
-    png = html.replace('.html', '.png')
+    png = str(html).replace('.html', '.png')
     if Path(png).exists() and Path(png).stat().st_size >= MIN_SIZE:
       png_files.append(png)
     else:

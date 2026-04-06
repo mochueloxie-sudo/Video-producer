@@ -31,8 +31,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       const fileUrl = 'file://' + path.resolve(htmlFile);
       await page.goto(fileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
 
-      // 等待字体/资源加载（用 sleep 替代 waitForTimeout）
-      await sleep(500);
+      // 等待字体/资源加载（Google Fonts 可能需要较长时间）
+      await sleep(3000);  // 3 秒确保字体下载完成
 
       // 截图
       const pngPath = htmlFile.replace('.html', '.png');

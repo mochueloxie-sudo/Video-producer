@@ -10,7 +10,9 @@
 ## ✨ 功能亮点
 
 - 📄 **多源文档读取**：本地文件 / 公开网页 / 飞书文档
-- 🤖 **LLM 逐字稿**：StepFun GLM-4 生成（支持降级模板）
+- 🤖 **LLM 智能内容分析**：StepFun GLM-4 自动推断内容类型 + 生成大纲 + 逐字稿 + **视觉布局分析**（2026-04-06 增强）
+- 🎨 **动态视觉设计**：基于内容类型 + LLM 内容感知微调 + 每页布局智能推荐
+- 🖼️ **LLM 增强渲染**：Step 4 引入 LLM 批量分析，每页获得专属布局建议（`layout_hint` / `special_elements`），告别模板化
 - 🗣️ **TTS 语音合成**：Minimax V2（首选）| 腾讯云 | macOS say（保底）
 - 🎬 **视频自动合成**：ffmpeg 生成 1920×1080 H.264 视频
 - ☁️ **飞书集成**：自动上传视频 + 创建含播放器的文档
@@ -18,48 +20,34 @@
 
 ---
 
-## 🚀 快速开始
+## 🎯 核心流程（8 步）
 
-### 1. 安装依赖
+| Step | 名称 | 说明 | LLM |
+|------|------|------|-----|
+| 0 | 内容分析 | 推断内容类型 + 推荐设计模式 | ✅ GLM-4 |
+| 1 | 大纲生成 | 从文档提取核心要点 | ✅ GLM-4 |
+| 1.5 | 页面精炼 | 将大纲拆分为独立幻灯片页面 | ✅ GLM-4 |
+| 2 | 逐字稿生成 | 为每页生成口语化讲稿 | ✅ GLM-4 |
+| 3 | 视觉风格确定 | **LLM 内容感知微调** + 扁平化输出 | ✅ GLM-4（内容分析） |
+| 4 | HTML 生成 | **LLM 批量布局分析 + 智能渲染**（2026-04-06 增强） | ✅ Step-1-8k（批量分析） |
+| 5 | TTS 语音 | Minimax V2 → 腾讯云 → macOS say 自动降级 | ❌（API 调用） |
+| 6 | 视频合成 | ffmpeg 合成 1920×1080 视频 | ❌（本地处理） |
+| 7 | 飞书上传播放器 | 创建云文档 + 嵌入视频 | ❌（API 调用） |
 
-```bash
-# 使用安装脚本（推荐）
-./install.sh
-
-# 或手动安装
-brew install ffmpeg node
-npm install -g @larksuite/cli
-```
-
-### 2. 配置密钥
-
-编辑 `config.json`：
-```json
-{
-  "minimax": {
-    "api_key": "sk-...",
-    "group_id": "group_..."
-  },
-  "stepfun": {
-    "api_key": "1omUi..."
-  }
-}
-```
-
-### 3. 登录飞书
-
-```bash
-lark-cli auth login
-```
-
-### 4. 运行
-
-```bash
-python3 video-producer.py \
+> **2026-04-06 更新**：Step 3 函数签名简化为三参数 `(content_type, design_mode, context)`；Step 4 全面重写，引入页面类型约束和渲染逻辑优化。
   --document_url="file:///path/to/your/doc.md" \
-  --audience="executives" \
   --design_mode="optimized"
 ```
+
+**参数说明：**
+- `--document_url`: 文档地址（支持 `file://`, `https://`, 飞书 `docx://`）
+- `--design_mode`: 设计模式 — `default`（基础）/ `optimized`（增强，推荐）/ `minimal`（极简）
+- `--tts_provider`: TTS 提供商 — `minimax` / `tencent` / `macos`
+- `--output_quality`: 输出质量 — `high`（高码率）/ `medium` / `low`
+
+**🎯 智能推荐：**
+- 如果不指定 `design_mode`，系统会根据内容类型自动推荐（Step 0 输出）
+- 新版 Step 4 会为每页进行 LLM 布局分析，动态调整视觉风格
 
 ---
 
@@ -95,21 +83,22 @@ python3 video-producer.py \
 
 ```
 video-producer/
-├── video-producer.py      # 主入口
+├── video-producer.py      # 主入口（Step 0→7 流水线）
 ├── config.json            # API keys 配置（需自行填写）
 ├── config.example.json    # 配置模板
 ├── install.sh             # 一键安装脚本
-├── SKILL.md               # 完整技能文档
+├── SKILL.md               # 完整技能文档（含 8 步详解）
 ├── README.md              # 本文件
 ├── steps/                 # 8 个步骤实现
-│   ├── step0_analyze.py   # 文档读取
-│   ├── step1_extract.py   # 要点提炼
-│   ├── step2_script.py    # LLM 逐字稿
-│   ├── step3_design.py    # 视觉风格
-│   ├── step4_html.py      # HTML 生成
-│   ├── step5_tts.py       # TTS 合成
-│   ├── step6_video.py     # 视频合成
-│   └── step7_doc.py       # 飞书文档
+│   ├── step0_outline.py   # 文档分析 + 内容类型推断 + outline 生成
+│   ├── step1_5_refine.py  # 页面精炼（封面 + 内容页）
+│   ├── step2_llm_scripts.py  # LLM 逐字稿生成
+│   ├── step3_design.py    # 视觉风格 + LLM 内容感知微调
+│   ├── step4_html.py      # ⭐ LLM 布局分析 + 智能 HTML 渲染（2026-04-06 增强）
+│   ├── step5_tts.py       # TTS 合成（多提供商降级）
+│   ├── step6_video.py     # ffmpeg 视频合成
+│   └── step7_doc.py       # 飞书文档创建 + 视频上传
+├── llm_client.py          # LLM 统一客户端（Minimax / StepFun / OpenAI）
 └── example/
     └── demo.md            # 示例文档
 ```

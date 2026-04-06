@@ -17,6 +17,13 @@ htmlcov/
 # Config & Secrets（重要！）
 config.json
 
+# Backups
+backup-*.tar.gz
+backup-*.tar
+*.bak
+*.backup
+*.orig
+
 # Video & Audio 临时文件
 /tmp/video-producer-slides/
 /tmp/video-producer-audio/
