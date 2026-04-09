@@ -1,5 +1,7 @@
 # Video Producer
 
+[![中文](https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-red)](README_zh.md)
+
 > Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML — in under 10 minutes.
 
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-43853d)](https://nodejs.org/)
