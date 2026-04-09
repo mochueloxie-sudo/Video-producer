@@ -1,5 +1,5 @@
 /**
- * Shared utilities for video-producer steps
+ * Shared utilities for slide-forge steps
  */
 
 const fs = require('fs');

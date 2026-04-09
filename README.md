@@ -30,7 +30,7 @@
 
 ```bash
 # 1. 安装
-git clone https://github.com/mochueloxie-sudo/Video-producer.git
+git clone https://github.com/mochueloxie-sudo/SlideForge.git
 cd slide-forge
 npm install
 

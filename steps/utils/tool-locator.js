@@ -11,7 +11,7 @@ const { spawnSync } = require('child_process');
 
 class ToolLocator {
   constructor() {
-    this.configDir = path.join(process.env.HOME || process.env.USERPROFILE, '.video-producer');
+    this.configDir = path.join(process.env.HOME || process.env.USERPROFILE, '.slide-forge');
     this.configFile = path.join(this.configDir, 'tools.json');
     this.historyFile = path.join(this.configDir, 'install-history.json');
     this.cache = {};
@@ -66,7 +66,7 @@ class ToolLocator {
    */
   getToolDefinitions() {
     return [
-      // 核心工具（video-producer 依赖）
+      // 核心工具（slide-forge 依赖）
       {
         key: 'ffmpeg',
         names: ['ffmpeg'],
@@ -449,7 +449,7 @@ class ToolLocator {
    * 交互式配置（备用）
    */
   static configure() {
-    console.log('⚙️  工具配置向导（暂未实现，请直接编辑 ~/.video-producer/tools.json）');
+    console.log('⚙️  工具配置向导（暂未实现，请直接编辑 ~/.slide-forge/tools.json）');
   }
 }
 

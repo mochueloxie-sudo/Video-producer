@@ -1,5 +1,5 @@
 /**
- * HTML Generator for video-producer
+ * HTML Generator for slide-forge
  * 直接复制样张 HTML 结构，替换内容 tokens
  * 样张路径: samples/{design_mode}/cover.html | content.html
  */
@@ -348,7 +348,7 @@ function computeDensity(scene) {
  */
 function getReadabilityCSS() {
   return `
-  /* video-producer: 1920×1080 readability baseline */
+  /* slide-forge: 1920×1080 readability baseline */
   .body-text, p.body-text         { font-size: 28px !important; line-height: 1.68 !important; }
   .kp-item span:last-child,
   .kp-item > span:not(.kp-arrow):not(.kp-dot):not(.kp-num) { line-height: 1.55 !important; }

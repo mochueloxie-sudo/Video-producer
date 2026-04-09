@@ -1,12 +1,12 @@
 #!/bin/bash
-# 工具诊断脚本：检查 video-producer 依赖的外部工具
+# 工具诊断脚本：检查 slide-forge 依赖的外部工具
 
 echo "🔧 Video-Producer 工具诊断"
 echo "================================"
 echo ""
 
 # 加载 tool locator
-TOOL_LOCATOR="$HOME/.openclaw/workspace/skills/video-producer/steps/utils/tool-locator.js"
+TOOL_LOCATOR="$HOME/.openclaw/workspace/skills/slide-forge/steps/utils/tool-locator.js"
 
 if [ ! -f "$TOOL_LOCATOR" ]; then
   echo "❌ 未找到 tool-locator.js"
@@ -51,7 +51,7 @@ const locator = getLocator();
 
 echo ""
 echo "💡 配置方法："
-echo "1. 编辑配置文件: $HOME/.video-producer/tools.json"
+echo "1. 编辑配置文件: $HOME/.slide-forge/tools.json"
 echo "2. 或设置环境变量（如 export FFMPEG_PATH=/path/to/ffmpeg）"
 echo "3. 运行交互式配置: node -e \"require('./steps/utils/tool-locator').ToolLocator.configure()\""
 echo ""
