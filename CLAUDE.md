@@ -1,4 +1,4 @@
-# CLAUDE.md — video-producer 内部开发指南
+# CLAUDE.md — slide-forge 内部开发指南
 
 ## 项目概述
 

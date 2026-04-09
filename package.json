@@ -1,5 +1,5 @@
 {
-  "name": "video-producer",
+  "name": "slide-forge",
   "version": "3.0.0",
   "description": "Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML. 13 themes, 20+ content variants, fully automatic.",
   "main": "executor.js",
@@ -24,7 +24,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/heytea/video-producer.git"
+    "url": "https://github.com/mochueloxie-sudo/slide-forge.git"
   },
   "engines": {
     "node": ">=18.0.0"

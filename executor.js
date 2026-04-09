@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * video-producer skill (Lightweight v2.0)
+ * slide-forge skill (Lightweight v2.0)
  * 8个独立Step，自由组合，无锁死流水线
  */
 
@@ -32,7 +32,7 @@ async function main() {
       const params = JSON.parse(input);
       const { command } = params;
 
-      console.log(`🎬 video-producer: executing command="${command}"`);
+      console.log(`🎬 slide-forge: executing command="${command}"`);
 
       let result;
       switch (command) {

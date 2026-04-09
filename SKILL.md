@@ -1,5 +1,5 @@
 ---
-name: Video Producer
+name: SlideForge
 description: >
   把飞书文档、本地文件（.md/.txt）或网页链接一键转换为高品质 1920×1080 演示内容。
   支持三种交付格式（视频/PDF/交互式HTML），13种设计主题自动匹配，

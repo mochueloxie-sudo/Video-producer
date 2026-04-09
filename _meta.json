@@ -1,5 +1,5 @@
 {
-  "name": "video-producer",
+  "name": "slide-forge",
   "version": "3.0.0",
   "description": "把飞书文档、本地文件（.md/.txt）或网页一键转换为高品质演示内容。支持视频/PDF/交互式HTML三种交付格式，13种设计主题自动匹配，8个独立Step自由组合。",
   "type": "agent",

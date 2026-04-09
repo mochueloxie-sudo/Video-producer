@@ -1,4 +1,4 @@
-# Video Producer
+# SlideForge
 
 [![中文](https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-red)](README.md)
 
@@ -31,8 +31,8 @@ Feed in a Feishu doc, Markdown file, or any URL. The pipeline analyses your cont
 
 ```bash
 # 1. Install
-git clone https://github.com/heytea/video-producer.git
-cd video-producer
+git clone https://github.com/heytea/slide-forge.git
+cd slide-forge
 npm install
 
 # 2. Configure
@@ -235,7 +235,7 @@ echo '{"command":"step7","channel":"local","output_dir":"'"$P"'"}' | node execut
 
 ## Agent Integration
 
-Video Producer exposes a standard JSON-in / JSON-out interface via `stdin` → `executor.js` → `stdout`, making it compatible with any AI agent framework:
+SlideForge exposes a standard JSON-in / JSON-out interface via `stdin` → `executor.js` → `stdout`, making it compatible with any AI agent framework:
 
 - **Claude Code** — use as a skill via `SKILL.md`
 - **OpenClaw** — use `_meta.json` for auto-discovery
@@ -248,7 +248,7 @@ See [`_meta.json`](_meta.json) for the full input/output schema and [`SKILL.md`]
 ## Project Structure
 
 ```
-video-producer/
+slide-forge/
 ├── executor.js                     # Entry point — routes commands to steps
 ├── _meta.json                      # Agent integration schema (v3.0.0)
 ├── SKILL.md                        # Agent skill specification
