@@ -172,6 +172,11 @@ open ./test_e2e/presentation.html
 
 ## 待优化点
 
+### dark-botanical 主题未被 CONTENT_TYPE_MAP 覆盖（P2）
+- **问题**：13 个主题中 `dark-botanical` 没有出现在 `CONTENT_TYPE_MAP` 里，`inferContentType()` 也没有相关关键词，永远不会被 auto-select 命中
+- **现状**：`dark-botanical` 只能通过用户手动 `--design_mode dark-botanical` 指定
+- **待确认**：为 `dark-botanical` 补充对应的内容类型和关键词映射（如"人文/教育/社科" → `dark-botanical`）
+
 ### graphic-design executor 引用问题（P1）
 - **问题**：`steps/step2_design.js` 引用了 `~/.openclaw/workspace/skills/graphic-design/executor.js`，但该 skill 不存在于 workspace/skills/ 目录中
 - **现状**：调用时 30 秒超时后 fallback 到本地 preset，功能可用但有延迟
