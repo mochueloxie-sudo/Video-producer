@@ -169,7 +169,7 @@ open ./test_e2e/presentation.html
 
 ## 设计原则参考（本地副本）
 
-可选视觉与动效原则见 `**refs/frontend-slides/**`（vendored MIT，与 [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides) 对齐；非 npm 依赖、不参与构建）。索引说明见 `refs/README.md`。
+可选视觉与动效原则见 **`refs/frontend-slides/`**（vendored MIT，与 [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides) 对齐；非 npm 依赖、不参与构建）。索引说明见 `refs/README.md`。
 
 ---
 
@@ -189,37 +189,21 @@ open ./test_e2e/presentation.html
 
 ---
 
-## 主题选择链路（已实现）
+## 主题选择链路（与当前代码一致）
 
-1. **用户指定**：仅当本次调用 JSON 里带了 `design_mode`（`all` / `step2` 等由 agent 或人工传入）— Step2 **只认参数**，不读 `project.json` 里的 `design_mode`。
-2. **未指定**：`project.json` 的 `**recommended_design_mode`**（Step0 LLM）→ 校验为合法主题 id 后采用（`mode_source: step0-llm`）。
-3. **仍无或未识别**：`inferContentType()` + `CONTENT_TYPE_MAP` 规则兜底（`mode_source: auto`）。
+优先级在 **`steps/step2_design.js`**（未传 `design_mode` 时）：
 
-`project.json` 里仍可保留 `design_mode`（例如 Step0 入参写入，给人看或给别的工具用），但 **Step2 选主题不依赖它**。Step0 要求模型返回 `{ "recommended_design_mode", "scenes" }`；若只返回数组则仅解析 `scenes`。`scenes.json` 仍为纯数组。
+1. **`project.json` 的 `recommended_design_mode`**（Step0 LLM 在对象响应里写入；须为 13 个合法主题 id 之一）→ `mode_source: step0-llm`
+2. **`project.json` 的 `design_mode`**（且不等于默认 `electric-studio`）→ `mode_source: project.json`
+3. **`inferContentType()` + `CONTENT_TYPE_MAP`** 内容规则兜底 → `mode_source: auto`
 
----
+本次调用 JSON 里显式传入的 **`design_mode`** 始终最高优先级（`mode_source: user`）。
 
-## 待优化点
+Step0：`scenes.json` 仍为**纯 scenes 数组**；`project.json` 可含 `recommended_design_mode`。若模型只返回数组（无推荐字段），Step2 走规则自动选主题。
 
-### dark-botanical 主题未被 CONTENT_TYPE_MAP 覆盖（P2）
+**`dark-botanical`**：已映射内容类型 **`人文社科`**（中/英键），`inferContentType()` 含人文/社科/策展/心理学等关键词时命中；与 **`文化艺术` → vintage-editorial** 并列分流。
 
-- **问题**：13 个主题中 `dark-botanical` 没有出现在 `CONTENT_TYPE_MAP` 里，`inferContentType()` 也没有相关关键词，永远不会被 auto-select 命中
-- **现状**：`dark-botanical` 只能通过用户手动 `--design_mode dark-botanical` 指定
-- **待确认**：为 `dark-botanical` 补充对应的内容类型和关键词映射（如"人文/教育/社科" → `dark-botanical`）
-
-### graphic-design executor 引用问题（P1）
-
-- **问题**：`steps/step2_design.js` 引用了 `~/.openclaw/workspace/skills/graphic-design/executor.js`，但该 skill 不存在于 workspace/skills/ 目录中
-- **现状**：调用时 30 秒超时后 fallback 到本地 preset，功能可用但有延迟
-- **待确认**：这个引用为什么会保留？是否可以移除或改为纯可选逻辑（不做强制调用）？
-- **参考路径**：`step2_design.js` 第 3 行注释 `// 默认真实调用 graphic-design executor；失败时回退到本地 preset`
-
-### Step 0 LLM 语义推荐设计主题（P1）
-
-- **现状**：Step 0 只做内容结构化，不推荐主题；主题选择由 Step 2 的 `inferContentType()` 规则引擎完成
-- **目标**：在 Step 0 的 LLM prompt 中增加主题推荐逻辑，让 AI 直接根据内容语义输出 `design_mode` 建议，存入 scenes.json
-- **优势**：Step 0 已调用 LLM，增加主题推荐无需额外 API 调用；语义理解比规则匹配更准确
-- **实现思路**：在 Step 0 prompt 末尾追加一行要求 LLM 输出 `recommended_design_mode`（从 13 个主题中选择最匹配的）
+**Step2 preset 来源**：仅 **`frontend-presets.json`**（`getFallbackPreset`）与专业模式的 **`getDeepTechKeynotePreset`**；**不再**调用 OpenClaw 的 `graphic-design` executor（历史上曾硬编码 `~/.openclaw/.../executor.js` 并导致 30s 超时）。若将来再接外部设计 agent，建议用**显式环境变量**（例如仅当 `GRAPHIC_DESIGN_EXECUTOR` 指向可读脚本时才 `spawn`），默认关闭。
 
 ---
 

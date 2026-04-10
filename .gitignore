@@ -10,6 +10,8 @@ node_modules/
 *.wav
 *.aiff
 output/
+output_tencent_swiss/
+pipeline_run_output/
 project/
 
 # Test artifacts

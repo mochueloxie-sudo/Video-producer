@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 // Step 2: 设计参数生成
-// 默认真实调用 graphic-design executor；失败时回退到本地 preset
+// 仅使用本地 frontend-presets（OpenClaw graphic-design skill 已移除；若再接外部 agent 建议用显式环境变量开关）
 
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 const { ensureDir, writeResult } = require('./utils/step-utils');
 
 const STYLE_PRESETS = require('./presets/frontend-presets.json');
 const DEFAULT_PRESET = 'electric-studio';
 const PROFESSIONAL_MODE = 'deep-tech-keynote';
-const GRAPHIC_DESIGN_EXECUTOR = path.resolve(process.env.HOME, '.openclaw/workspace/skills/graphic-design/executor.js');
-const GRAPHIC_DESIGN_TIMEOUT_MS = 30000;
+const VALID_DESIGN_MODES = new Set(Object.keys(STYLE_PRESETS.presets || {}));
 
 // ─── Content type → design_mode auto-selection ───────────────────────────────
 
@@ -42,6 +40,8 @@ const CONTENT_TYPE_MAP = {
   'brand':     'swiss-modern',
   '文化艺术':  'vintage-editorial',// 历史、文化、艺术、传统、书评
   'culture':   'vintage-editorial',
+  '人文社科':  'dark-botanical',   // 人文、社科、策展、学术气质（深色暖调）
+  'humanities':'dark-botanical',
 };
 
 function autoSelectDesignMode(scenes) {
@@ -85,11 +85,14 @@ process.stdin.on('end', async () => {
     let modeSource = 'user';
 
     if (!design_mode) {
-      // Check if project.json has a saved user preference
       const projectFile = path.join(path.resolve(output_dir), 'project.json');
       if (fs.existsSync(projectFile)) {
         const proj = JSON.parse(fs.readFileSync(projectFile, 'utf8'));
-        if (proj.design_mode && proj.design_mode !== DEFAULT_PRESET) {
+        const rec = proj.recommended_design_mode;
+        if (rec && VALID_DESIGN_MODES.has(String(rec).trim())) {
+          design_mode = String(rec).trim();
+          modeSource = 'step0-llm';
+        } else if (proj.design_mode && proj.design_mode !== DEFAULT_PRESET) {
           design_mode = proj.design_mode;
           modeSource = 'project.json';
         }
@@ -97,7 +100,6 @@ process.stdin.on('end', async () => {
     }
 
     if (!design_mode) {
-      // Auto-select based on content
       design_mode = autoSelectDesignMode(scenesData);
       modeSource = 'auto';
     }
@@ -105,34 +107,16 @@ process.stdin.on('end', async () => {
     console.error(`🎨 生成设计参数（主题: ${design_mode}，来源: ${modeSource}）`);
 
     let designParams;
-    let presetSource = 'graphic-design';
+    let presetSource = 'frontend-presets';
     let fallbackReason = null;
 
-    // 优先使用本地 preset（已包含完整的 panel/glow/specialElements）
-    // graphic-design 可选：若成功则增强覆盖 preset 值
     try {
       if (design_mode === PROFESSIONAL_MODE) {
         designParams = getDeepTechKeynotePreset();
         presetSource = 'deep-tech-keynote';
         console.error(`   ✅ 使用专业演讲稿模式: ${PROFESSIONAL_MODE}`);
       } else {
-        // 先取完整 preset，再尝试 graphic-design 增强
         designParams = getFallbackPreset(design_mode);
-        try {
-          const agentInput = buildGraphicDesignInput(scenesData, design_mode, params);
-          const agentResult = await callGraphicDesignExecutor(agentInput);
-          // 浅合并：只覆盖 agent 返回的非空字段（不破坏 preset 完整性）
-          for (const key of ['colorScheme', 'typography', 'decoration', 'specialElements', 'layout_hint']) {
-            if (agentResult[key] && typeof agentResult[key] === 'object') {
-              designParams[key] = { ...designParams[key], ...agentResult[key] };
-            } else if (agentResult[key]) {
-              designParams[key] = agentResult[key];
-            }
-          }
-          console.error(`   ✅ graphic-design 增强成功: ${agentResult.design_mode || design_mode}`);
-        } catch (agentErr) {
-          console.error(`   ⚠️ graphic-design 不可用，使用本地 preset: ${agentErr.message}`);
-        }
       }
     } catch (err) {
       fallbackReason = err.message;
@@ -168,21 +152,6 @@ process.stdin.on('end', async () => {
   }
 });
 
-function buildGraphicDesignInput(scenes, design_mode, params = {}) {
-  const bodyText = scenes.flatMap(scene => Array.isArray(scene.body) ? scene.body : []).join(' ');
-  const topic = scenes[0]?.title || params.topic || 'Video Content';
-
-  return {
-    scenario: params.scenario || '视频',
-    content_type: inferContentType(bodyText, scenes),
-    topic,
-    key_points: scenes.map(s => s.title).filter(Boolean),
-    audience: params.audience || 'general',
-    environment: params.environment || 'digital',
-    design_mode
-  };
-}
-
 function inferContentType(bodyText, scenes) {
   const text = `${bodyText} ${scenes.map(s => `${s.title || ''} ${s.eyebrow || ''}`).join(' ')}`;
 
@@ -196,56 +165,13 @@ function inferContentType(bodyText, scenes) {
   // 实验主题内容类型
   if (/读书|笔记|摘录|书评|阅读|总结|复盘|手账|随笔|心得|收获/i.test(text)) return '学习笔记';
   if (/深度|报道|访谈|专题|评论|文章|杂志|观点|分析|解读|长文/i.test(text)) return '深度内容';
-  if (/历史|文化|艺术|传统|古典|人文|非遗|博物|文学|诗|经典/i.test(text)) return '文化艺术';
+  if (/人文|社科|人类学|社会学|心理学|策展|民族志|博物馆学|田野调查|学术期刊|思辨|伦理/i.test(text)) return '人文社科';
+  if (/历史|文化|艺术|传统|古典|非遗|博物|文学|诗|经典/i.test(text)) return '文化艺术';
   if (/时尚|美妆|穿搭|生活方式|种草|探店|好物|分享|日常|打卡/i.test(text)) return '生活方式';
   if (/品牌|VI|视觉|logo|设计规范|色彩|字体|企业形象|手册/i.test(text)) return '品牌展示';
   if (/创意|设计|插画|视觉|提案|灵感|风格|美学|配色|排版/i.test(text)) return '创意设计';
 
   return '通用演示';
-}
-
-function callGraphicDesignExecutor(agentInput) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn('node', [GRAPHIC_DESIGN_EXECUTOR], { stdio: ['pipe', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    let settled = false;
-
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        proc.kill('SIGTERM');
-        reject(new Error(`graphic-design timeout after ${GRAPHIC_DESIGN_TIMEOUT_MS}ms`));
-      }
-    }, GRAPHIC_DESIGN_TIMEOUT_MS);
-
-    proc.stdout.on('data', d => stdout += d);
-    proc.stderr.on('data', d => stderr += d);
-    proc.on('error', err => {
-      if (!settled) {
-        settled = true;
-        clearTimeout(timer);
-        reject(err);
-      }
-    });
-    proc.on('close', code => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (code !== 0) {
-        reject(new Error(stderr.trim() || `graphic-design exited with code ${code}`));
-        return;
-      }
-      try {
-        resolve(JSON.parse(stdout));
-      } catch (err) {
-        reject(new Error(`graphic-design JSON parse failed: ${err.message}`));
-      }
-    });
-
-    proc.stdin.write(JSON.stringify(agentInput));
-    proc.stdin.end();
-  });
 }
 
 function buildPageDirections(scenes, designParams, design_mode) {

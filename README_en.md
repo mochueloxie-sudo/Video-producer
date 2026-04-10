@@ -258,7 +258,7 @@ See `[_meta.json](_meta.json)` for the full input/output schema and `[SKILL.md](
 ```
 slide-forge/
 ├── executor.js                     # Entry point — routes commands to steps
-├── _meta.json                      # Agent integration schema (v3.0.0)
+├── _meta.json                      # Agent integration schema (v3.0.1)
 ├── SKILL.md                        # Agent skill specification
 ├── steps/
 │   ├── step0_analyze.js            # Content analysis (MiniMax LLM)

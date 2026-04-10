@@ -270,7 +270,16 @@ card_grid:
 
 All scenes also have: id, type, content_variant (for content scenes), eyebrow, title, secondary (optional subtitle), script_hint (one sentence on how to narrate this slide).
 
-Return ONLY the JSON array. No markdown fences, no explanation.`;
+## Design theme recommendation (required)
+
+Also pick the single best **visual theme id** for this deck (semantic match to tone and audience). Use exactly one of these ids:
+electric-studio, bold-signal, creative-voltage, dark-botanical, neon-cyber, terminal-green, deep-tech-keynote, notebook-tabs, paper-ink, pastel-geometry, split-pastel, swiss-modern, vintage-editorial
+
+Return **one** JSON value — either:
+- A **JSON object**: \`{ "recommended_design_mode": "<id>", "scenes": [ ... ] }\`  (preferred), or
+- A **JSON array** of scenes only (legacy; if you omit the object wrapper, theme choice falls back to Step2 rules).
+
+No markdown fences, no explanation text outside the JSON.`;
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
@@ -307,10 +316,25 @@ process.stdin.on('end', async () => {
     const prompt = buildStructurePrompt(extracted, language);
     const raw = await callMiniMax([{ role: 'user', content: prompt }], { maxTokens: 8000 });
 
+    const THEME_IDS = new Set([
+      'electric-studio', 'bold-signal', 'creative-voltage', 'dark-botanical', 'neon-cyber', 'terminal-green',
+      'deep-tech-keynote', 'notebook-tabs', 'paper-ink', 'pastel-geometry', 'split-pastel', 'swiss-modern', 'vintage-editorial',
+    ]);
+
     let scenes;
+    let recommended_design_mode = null;
     try {
       const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-      scenes = JSON.parse(cleaned);
+      const parsed = JSON.parse(cleaned);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.scenes)) {
+        scenes = parsed.scenes;
+        const rec = parsed.recommended_design_mode;
+        if (rec && THEME_IDS.has(String(rec).trim())) recommended_design_mode = String(rec).trim();
+      } else if (Array.isArray(parsed)) {
+        scenes = parsed;
+      } else {
+        throw new Error('Expected scenes array or { recommended_design_mode, scenes }');
+      }
     } catch (e) {
       const arrMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/);
       if (!arrMatch) throw new Error(`MiniMax did not return valid JSON:\n${raw.slice(0, 500)}`);
@@ -328,7 +352,7 @@ process.stdin.on('end', async () => {
     const projectFile = path.join(outputPath, 'project.json');
 
     fs.writeFileSync(scenesFile, JSON.stringify(scenes, null, 2));
-    fs.writeFileSync(projectFile, JSON.stringify({
+    const projectPayload = {
       source,
       source_type: extracted.source_type,
       title: extracted.title,
@@ -336,7 +360,10 @@ process.stdin.on('end', async () => {
       language,
       scenes,
       generated_at: new Date().toISOString()
-    }, null, 2));
+    };
+    if (recommended_design_mode) projectPayload.recommended_design_mode = recommended_design_mode;
+
+    fs.writeFileSync(projectFile, JSON.stringify(projectPayload, null, 2));
 
     writeResult({
       success: true,

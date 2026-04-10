@@ -6,7 +6,7 @@ description: >
   支持三种交付格式（视频/PDF/交互式HTML），13种设计主题自动匹配，
   所有产出自动附带大纲和逐字稿。8个独立Step，支持任意节点重跑。
 type: agent
-version: "3.0.0"
+version: "3.0.1"
 metadata:
   clawdbot:
     emoji: "🎬"

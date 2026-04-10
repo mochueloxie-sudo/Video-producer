@@ -1,6 +1,6 @@
 {
   "name": "slide-forge",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML. 13 themes, 20+ content variants, fully automatic.",
   "main": "executor.js",
   "type": "commonjs",
