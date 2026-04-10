@@ -1,6 +1,0 @@
-[
-  { "id": 1, "type": "cover", "title": "AI 新鲜事", "subtitle": "2026-04-07 · 第 1 期", "body": [] },
-  { "id": 2, "type": "content", "title": "四波浪潮同时叠加", "body": ["Transformer、RL、Agent、RSI——这四波浪潮全部已经 work", "这不是一夜成名，是 80 年积累的集中爆发"] },
-  { "id": 3, "type": "content", "title": "Andreessen 的判断", "body": ["制度墙不是一个人能拆的", "但可以让自己的团队先过那道坎"] },
-  { "id": 4, "type": "summary", "title": "每天进步一点点", "body": ["重要的不是结果，而是每一天的努力和进步"] }
-]
