@@ -24,6 +24,10 @@
 - **P0 阶段 1**：块级 `data-vp-animate` / stagger；`page_animation_preset` 多档预设（样张 + `html_generator`）。
 - **交付 HTML**：`presentation.html` 键盘说明写入 README / 首次打开轻提示（可选）。
 
+### 待定
+
+- **`npm audit`**：传递依赖 `basic-ftp` 报 high（FTP CRLF / 命令注入类，[GHSA-chqc-8p9q-pq6q](https://github.com/advisories/GHSA-chqc-8p9q-pq6q)）。对本仓库典型用法（本地/CI 跑流水线、非对外 FTP 服务）风险极低；后续可 `npm audit fix` 并跑 `npm run test:e2e` 再发版。
+
 ---
 
 ## [3.0.1] — 2026-04-10
