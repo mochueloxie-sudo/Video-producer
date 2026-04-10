@@ -200,7 +200,8 @@ async function run_all(params) {
     format: formats,
     scenes: params.scenes,
     screenshots_dir: params.screenshots_dir || path.join(params.output_dir, 'screenshots'),
-    audio_dir: params.audio_dir || path.join(params.output_dir, 'audio')
+    audio_dir: params.audio_dir || path.join(params.output_dir, 'audio'),
+    html_dir: params.html_dir || params.output_dir,
   });
   results.push(r6);
 

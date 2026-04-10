@@ -58,7 +58,14 @@ function deliverLocal(outputPath) {
   const deliverables = [];
   const manifest = [];
 
-  const mainFiles = ['presentation.mp4', 'presentation.pdf', 'presentation.html', 'outline.md', 'script.md'];
+  const mainFiles = [
+    'presentation.mp4',
+    'presentation.pdf',
+    'presentation.html',
+    'presentation_static.html',
+    'outline.md',
+    'script.md',
+  ];
   for (const f of mainFiles) {
     const fp = path.join(outputPath, f);
     if (fs.existsSync(fp)) {

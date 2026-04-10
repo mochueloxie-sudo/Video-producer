@@ -314,6 +314,61 @@ function injectVpAnimOnFirstOpeningTag(line, designParams, index) {
   return line.replace(/^(\s*<)([a-zA-Z][\w-]*)/, (_, lead, tag) => `${lead}${tag}${raw}`);
 }
 
+/**
+ * S2: 克制 hover（panel / icon_grid / card_grid）。
+ * 不用 transform/filter：与 [data-vp-animate] 入场动画的 transform 冲突，hover 会被 forwards 盖住。
+ */
+function getVariantInteractiveHoverStyleBlock(variant) {
+  if (variant === 'panel') {
+    return `<style id="vp-variant-hover">
+@media (hover: hover) and (pointer: fine) {
+  .panel ul.kp-list > li.kp-item {
+    transition: outline-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    border-radius: 10px;
+  }
+  .panel ul.kp-list > li.kp-item:hover {
+    outline-color: rgba(255,255,255,0.28);
+    background-color: rgba(255,255,255,0.06);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+  }
+}
+</style>`;
+  }
+  if (variant === 'icon_grid') {
+    return `<style id="vp-variant-hover">
+@media (hover: hover) and (pointer: fine) {
+  .grid .icon-card {
+    transition: outline-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    outline: 2px solid transparent;
+    outline-offset: 3px;
+  }
+  .grid .icon-card:hover {
+    outline-color: rgba(255,255,255,0.32);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  }
+}
+</style>`;
+  }
+  if (variant === 'card_grid') {
+    return `<style id="vp-variant-hover">
+@media (hover: hover) and (pointer: fine) {
+  .grid > .card {
+    transition: outline-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    outline: 2px solid transparent;
+    outline-offset: 3px;
+  }
+  .grid > .card:hover {
+    outline-color: rgba(255,255,255,0.3);
+    box-shadow: 0 14px 48px rgba(0,0,0,0.38);
+  }
+}
+</style>`;
+  }
+  return '';
+}
+
 function replaceTokens(html, tokens) {
   let result = html;
   for (const [key, value] of Object.entries(tokens)) {
@@ -353,6 +408,15 @@ function computeDensity(scene) {
   kp.forEach(k  => { addText(k); chars += 18; });       // each bullet occupies visual space
   stats.forEach(s => { addText(s.number); addText(s.label); chars += 30; });
   steps.forEach(s => { addText(s.label);  addText(s.desc);  chars += 28; });
+  (scene.process_stages || []).forEach(s => { addText(s.label); addText(s.desc); chars += 28; });
+  (scene.flow_lanes || []).forEach(l => {
+    addText(l.lane_label || l.label);
+    (l.cells || l.steps || []).forEach(c => { addText(c.label || c.title); addText(c.desc); chars += 24; });
+  });
+  (scene.layers || []).forEach(l => { addText(l.title); addText(l.desc); chars += 32; });
+  (scene.funnel_stages || []).forEach(f => { addText(f.label); addText(f.desc); chars += 26; });
+  (scene.compare_left_points || []).forEach(addText);
+  (scene.compare_right_points || []).forEach(addText);
   icons.forEach(i => { addText(i.label);  chars += 22; });
   cards.forEach(c => { addText(c.title);  addText(c.body);  chars += 35; });
 
@@ -390,6 +454,13 @@ function getReadabilityCSS() {
   .card-title                     { font-size: 26px !important; }
   .nav-item                       { font-size: 18px !important; }
   .context-text                   { font-size: 22px !important; line-height: 1.65 !important; }
+  .compare-list li                { font-size: 24px !important; }
+  .pf-label                       { font-size: 22px !important; }
+  .pf-desc                        { font-size: 18px !important; line-height: 1.55 !important; }
+  .arch-layer-title               { font-size: 28px !important; }
+  .arch-layer-desc                { font-size: 20px !important; line-height: 1.55 !important; }
+  .fn-label                       { font-size: 26px !important; }
+  .fn-desc                        { font-size: 19px !important; line-height: 1.5 !important; }
   .bullet-text                    { font-size: 26px !important; line-height: 1.5 !important; }
   .bullet-desc                    { font-size: 19px !important; line-height: 1.58 !important; opacity: 0.75 !important; }
   .quote-text                     { font-size: 50px !important; }
@@ -732,6 +803,22 @@ function generateContent(scene, tpl, designMode, pageNum, totalPages, designPara
   if (variant === 'table' && (!scene.table_headers || !Array.isArray(scene.table_headers) || scene.table_headers.length === 0)) {
     variant = 'panel';
   }
+  if (variant === 'compare') {
+    const L = scene.compare_left_points || [];
+    const R = scene.compare_right_points || [];
+    if (!L.length || !R.length) variant = 'panel';
+  }
+  if (variant === 'process_flow') {
+    const hasRail = (scene.process_stages || []).length || (scene.steps || []).length;
+    const hasLane = (scene.flow_lanes || []).length;
+    if (!hasLane && !hasRail) variant = 'panel';
+  }
+  if (variant === 'architecture_stack' && (!(scene.layers || []).length || scene.layers.length < 2)) {
+    variant = 'panel';
+  }
+  if (variant === 'funnel' && (!(scene.funnel_stages || []).length || scene.funnel_stages.length < 2)) {
+    variant = 'panel';
+  }
   const variantMap = {
     'text':        '01_text_only',
     'panel':       '02_panel',
@@ -751,6 +838,10 @@ function generateContent(scene, tpl, designMode, pageNum, totalPages, designPara
     'number_bullets':'17_number_bullets',
     'quote_context':'18_quote_context',
     'text_icons':   '19_text_icons',
+    'compare':            '20_compare',
+    'process_flow':       '21_process_flow',
+    'architecture_stack': '22_architecture_stack',
+    'funnel':             '23_funnel',
   };
   let html = loadTemplate(designMode || 'electric-studio', variantMap[variant] || 'content');
   if (!html) html = loadTemplate(designMode || 'electric-studio', 'content');
@@ -885,6 +976,82 @@ function generateContent(scene, tpl, designMode, pageNum, totalPages, designPara
   tokens.RIGHT_POINTS = (scene.right_points || scene.key_points || [])
     .map((p, ri) => `<li class="kp-item"${vpBlockAnimAttrs(designParams, ri)}><span class="kp-arrow">›</span><span>${escapeHtml(p)}</span></li>`)
     .join('\n        ');
+
+  // compare (20)
+  tokens.COMPARE_LEFT_TITLE = escapeHtml(scene.compare_left_title || scene.compare_left_label || '方案 A');
+  tokens.COMPARE_RIGHT_TITLE = escapeHtml(scene.compare_right_title || scene.compare_right_label || '方案 B');
+  tokens.COMPARE_CENTER_LABEL = escapeHtml(scene.compare_center_label || 'VS');
+  const clp = scene.compare_left_points || [];
+  const crp = scene.compare_right_points || [];
+  tokens.COMPARE_LEFT_POINTS = clp.map((p, i) =>
+    `<li${vpBlockAnimAttrs(designParams, i)}><span class="compare-dot"></span><span>${escapeHtml(p)}</span></li>`
+  ).join('\n');
+  tokens.COMPARE_RIGHT_POINTS = crp.map((p, i) =>
+    `<li${vpBlockAnimAttrs(designParams, clp.length + i)}><span class="compare-dot"></span><span>${escapeHtml(p)}</span></li>`
+  ).join('\n');
+
+  // process_flow (21)
+  let pfStages = Array.isArray(scene.process_stages) ? scene.process_stages : [];
+  if (variant === 'process_flow' && pfStages.length === 0 && Array.isArray(scene.steps) && scene.steps.length) {
+    pfStages = scene.steps.map(s => ({
+      label: s.label || s.title || '',
+      desc: s.desc || '',
+    }));
+  }
+  const pfLanes = Array.isArray(scene.flow_lanes) ? scene.flow_lanes : [];
+  tokens.PROCESS_RAIL_HTML = pfStages.map((s, i) => [
+    '<div class="pf-stage">',
+    '  <div class="pf-node"></div>',
+    `  <div class="pf-card"${vpBlockAnimAttrs(designParams, i)}>`,
+    `    <div class="pf-label">${escapeHtml(s.label || '')}</div>`,
+    s.desc ? `    <div class="pf-desc">${escapeHtml(s.desc)}</div>` : '',
+    '  </div>',
+    '</div>',
+  ].filter(Boolean).join('\n')).join('\n');
+  tokens.PROCESS_SWIMLANES_HTML = pfLanes.map((lane, li) => {
+    const cells = Array.isArray(lane.cells) ? lane.cells : (Array.isArray(lane.steps) ? lane.steps : []);
+    const cellsHtml = cells.map((c, ci) => {
+      const inner = [
+        `      <div class="pf-label">${escapeHtml(c.label || c.title || '')}</div>`,
+        c.desc ? `      <div class="pf-desc">${escapeHtml(c.desc)}</div>` : '',
+      ].filter(Boolean).join('\n');
+      return `    <div class="pf-cell"${vpBlockAnimAttrs(designParams, li * 8 + ci)}>\n${inner}\n    </div>`;
+    }).join('\n');
+    return [
+      '<div class="pf-lane">',
+      `  <div class="pf-lane-label">${escapeHtml(lane.lane_label || lane.label || '')}</div>`,
+      '  <div class="pf-lane-track">',
+      cellsHtml,
+      '  </div>',
+      '</div>',
+    ].join('\n');
+  }).join('\n');
+
+  // architecture_stack (22)
+  const archLayers = Array.isArray(scene.layers) ? scene.layers : [];
+  tokens.ARCH_LAYERS_HTML = archLayers.map((layer, i) => [
+    `<div class="arch-layer"${vpBlockAnimAttrs(designParams, i)}>`,
+    '  <div class="arch-accent"></div>',
+    '  <div class="arch-inner">',
+    `    <div class="arch-layer-title">${escapeHtml(layer.title || layer.label || '')}</div>`,
+    layer.desc ? `    <div class="arch-layer-desc">${escapeHtml(layer.desc)}</div>` : '',
+    '  </div>',
+    '</div>',
+  ].filter(Boolean).join('\n')).join('\n');
+
+  // funnel (23)
+  const funnelStages = Array.isArray(scene.funnel_stages) ? scene.funnel_stages : [];
+  const fnCount = funnelStages.length || 1;
+  tokens.FUNNEL_TIERS_HTML = funnelStages.map((t, i) => {
+    const step = Math.min(42, i * (fnCount <= 4 ? 10 : 7));
+    const w = Math.max(58, 100 - step);
+    return [
+      `<div class="fn-tier" style="--fn-w:${w}%"${vpBlockAnimAttrs(designParams, i)}>`,
+      `  <div class="fn-label">${escapeHtml(t.label || '')}</div>`,
+      t.desc ? `  <div class="fn-desc">${escapeHtml(t.desc)}</div>` : '',
+      '</div>',
+    ].filter(Boolean).join('\n');
+  }).join('\n');
 
   // ── 5. Structured variant tokens ─────────────────────────────────────────
 
@@ -1160,6 +1327,7 @@ function generateContent(scene, tpl, designMode, pageNum, totalPages, designPara
     const density = computeDensity(scene);
     const classes = [
       scene.layout_hint ? `layout-${scene.layout_hint}` : null,
+      (!scene.layout_hint && variant === 'process_flow') ? 'layout-horizontal' : null,
       density !== 'normal'  ? `density-${density}`       : null,
     ].filter(Boolean);
 
@@ -1192,7 +1360,8 @@ function generateContent(scene, tpl, designMode, pageNum, totalPages, designPara
   body { display: flex !important; flex-direction: column !important; justify-content: center !important; }
   .page-num, .hairline, .vp-footnote { position: absolute !important; }
 `;
-    html = html.replace('</head>', `<style>${readCSS}${densityCSS}${glassCSS}${titleCSS}${cardCenterCSS}\n  </style>\n</head>`);
+    const hoverStyle = getVariantInteractiveHoverStyleBlock(variant);
+    html = html.replace('</head>', `<style>${readCSS}${densityCSS}${glassCSS}${titleCSS}${cardCenterCSS}\n  </style>\n${hoverStyle || ''}</head>`);
   }
 
   // ── 8. footnote — inject before </body> if scene.footnote is set ─────────
@@ -1229,6 +1398,12 @@ function generateHtml(scenes, designMode, outputDir, designParamsOrDirections) {
     function inferVariant(s) {
       if (s.content_variant) return s.content_variant;
       if (dir.content_variant) return dir.content_variant;
+      if (Array.isArray(s.compare_left_points) && s.compare_left_points.length &&
+          Array.isArray(s.compare_right_points) && s.compare_right_points.length) return 'compare';
+      if (Array.isArray(s.process_stages) && s.process_stages.length >= 2) return 'process_flow';
+      if (Array.isArray(s.flow_lanes) && s.flow_lanes.length >= 1) return 'process_flow';
+      if (Array.isArray(s.layers) && s.layers.length >= 2) return 'architecture_stack';
+      if (Array.isArray(s.funnel_stages) && s.funnel_stages.length >= 2) return 'funnel';
       if (Array.isArray(s.chart_data)  && s.chart_data.length)  return 'chart';
       if (Array.isArray(s.nav_items)   && s.nav_items.length)   return 'nav_bar';
       if (Array.isArray(s.stats)       && s.stats.length)       return 'stats_grid';

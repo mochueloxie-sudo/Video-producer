@@ -1,7 +1,7 @@
 {
   "name": "slide-forge",
-  "version": "3.0.1",
-  "description": "Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML. 13 themes, 20+ content variants, fully automatic.",
+  "version": "3.1.0",
+  "description": "Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML. 13 themes, 22 content variants, fully automatic.",
   "main": "executor.js",
   "type": "commonjs",
   "keywords": [
@@ -29,15 +29,35 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "files": [
+    "executor.js",
+    "SKILL.md",
+    "check_tools.sh",
+    ".env.example",
+    "_meta.json",
+    "steps",
+    "utils",
+    "samples",
+    "examples",
+    "refs",
+    "README.md",
+    "README_en.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "package.json"
+  ],
   "scripts": {
     "start": "echo '{\"command\":\"all\",\"source\":\"./examples/test_article.md\",\"format\":[\"pdf\",\"html\"],\"output_dir\":\"./output\"}' | node executor.js",
     "test:e2e": "echo '{\"command\":\"all\",\"source\":\"./examples/full_variant_test.md\",\"format\":[\"pdf\",\"html\"],\"output_dir\":\"./test_e2e\"}' | node executor.js",
-    "demo:html-local": "rm -rf demo_html_out && mkdir -p demo_html_out && cp examples/scenes_example.json demo_html_out/scenes.json && echo '{\"command\":\"step2\",\"scenes\":\"./demo_html_out/scenes.json\",\"output_dir\":\"./demo_html_out\"}' | node executor.js && echo '{\"command\":\"step3\",\"scenes\":\"./demo_html_out/scenes.json\",\"design_params\":\"./demo_html_out/design_params.json\",\"output_dir\":\"./demo_html_out\"}' | node executor.js && echo '{\"command\":\"step4\",\"html_dir\":\"./demo_html_out\",\"output_dir\":\"./demo_html_out/screenshots\",\"design_params\":\"./demo_html_out/design_params.json\"}' | node executor.js && echo '{\"command\":\"step6\",\"scenes\":\"./demo_html_out/scenes.json\",\"screenshots_dir\":\"./demo_html_out/screenshots\",\"output_dir\":\"./demo_html_out\",\"format\":[\"html\"]}' | node executor.js",
+    "demo:html-local": "rm -rf demo_html_out && mkdir -p demo_html_out && cp examples/scenes_example.json demo_html_out/scenes.json && echo '{\"command\":\"step2\",\"scenes\":\"./demo_html_out/scenes.json\",\"output_dir\":\"./demo_html_out\"}' | node executor.js && echo '{\"command\":\"step3\",\"scenes\":\"./demo_html_out/scenes.json\",\"design_params\":\"./demo_html_out/design_params.json\",\"output_dir\":\"./demo_html_out\"}' | node executor.js && echo '{\"command\":\"step4\",\"html_dir\":\"./demo_html_out\",\"output_dir\":\"./demo_html_out/screenshots\",\"design_params\":\"./demo_html_out/design_params.json\"}' | node executor.js && echo '{\"command\":\"step6\",\"scenes\":\"./demo_html_out/scenes.json\",\"screenshots_dir\":\"./demo_html_out/screenshots\",\"html_dir\":\"./demo_html_out\",\"output_dir\":\"./demo_html_out\",\"format\":[\"html\"]}' | node executor.js",
+    "demo:tencent-html-local": "rm -rf tencent_html_demo && mkdir -p tencent_html_demo && cp examples/tencent_intro_scenes_fixture.json tencent_html_demo/scenes.json && echo '{\"command\":\"step2\",\"scenes\":\"./tencent_html_demo/scenes.json\",\"output_dir\":\"./tencent_html_demo\",\"design_mode\":\"neon-cyber\"}' | node executor.js && echo '{\"command\":\"step3\",\"scenes\":\"./tencent_html_demo/scenes.json\",\"design_params\":\"./tencent_html_demo/design_params.json\",\"output_dir\":\"./tencent_html_demo\"}' | node executor.js && echo '{\"command\":\"step4\",\"html_dir\":\"./tencent_html_demo\",\"output_dir\":\"./tencent_html_demo/screenshots\",\"design_params\":\"./tencent_html_demo/design_params.json\"}' | node executor.js && echo '{\"command\":\"step6\",\"scenes\":\"./tencent_html_demo/scenes.json\",\"screenshots_dir\":\"./tencent_html_demo/screenshots\",\"html_dir\":\"./tencent_html_demo\",\"output_dir\":\"./tencent_html_demo\",\"format\":[\"html\"]}' | node executor.js",
+    "test:tencent-html": "rm -rf test_tencent_html && mkdir -p test_tencent_html && cp examples/tencent_intro_scenes_fixture.json test_tencent_html/scenes.json && echo '{\"command\":\"step2\",\"scenes\":\"./test_tencent_html/scenes.json\",\"output_dir\":\"./test_tencent_html\",\"design_mode\":\"neon-cyber\"}' | node executor.js && echo '{\"command\":\"step3\",\"scenes\":\"./test_tencent_html/scenes.json\",\"design_params\":\"./test_tencent_html/design_params.json\",\"output_dir\":\"./test_tencent_html\"}' | node executor.js && echo '{\"command\":\"step4\",\"html_dir\":\"./test_tencent_html\",\"output_dir\":\"./test_tencent_html/screenshots\",\"design_params\":\"./test_tencent_html/design_params.json\"}' | node executor.js && echo '{\"command\":\"step6\",\"scenes\":\"./test_tencent_html/scenes.json\",\"screenshots_dir\":\"./test_tencent_html/screenshots\",\"html_dir\":\"./test_tencent_html\",\"output_dir\":\"./test_tencent_html\",\"format\":[\"html\"]}' | node executor.js",
     "test:step0": "echo '{\"command\":\"step0\",\"source\":\"./examples/test_article.md\",\"output_dir\":\"./test_step0\"}' | node executor.js",
     "test:design": "echo '{\"command\":\"step2\",\"scenes\":\"./test_step0/scenes.json\",\"output_dir\":\"./test_step0\"}' | node executor.js",
     "test:html": "echo '{\"command\":\"step3\",\"scenes\":\"./test_step0/scenes.json\",\"design_params\":\"./test_step0/design_params.json\",\"output_dir\":\"./test_step0\"}' | node executor.js",
     "test:screenshot": "echo '{\"command\":\"step4\",\"html_dir\":\"./test_step0\",\"output_dir\":\"./test_step0/screenshots\",\"design_params\":\"./test_step0/design_params.json\"}' | node executor.js",
-    "clean": "rm -rf output test_e2e test_step0 test_step1 test_full test_output test_project test_themes debug_html preview demo_html_out test_html_only"
+    "clean": "rm -rf output test_e2e test_step0 test_step1 test_full test_output test_project test_themes debug_html preview preview_four_variants demo_html_out test_html_only test_preview_light_swiss tencent_html_demo test_tencent_html"
   },
   "directories": {
     "example": "examples"

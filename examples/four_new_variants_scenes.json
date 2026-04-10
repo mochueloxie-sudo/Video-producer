@@ -1,0 +1,122 @@
+[
+  {
+    "id": "s01",
+    "type": "cover",
+    "eyebrow": "技术方案路演",
+    "title": "四变体验证样张",
+    "secondary": "compare · process_flow · architecture_stack · funnel",
+    "script_hint": "开场点题。"
+  },
+  {
+    "id": "s02",
+    "type": "content",
+    "content_variant": "compare",
+    "eyebrow": "对照",
+    "title": "现状 vs 目标",
+    "compare_left_title": "现状",
+    "compare_right_title": "目标",
+    "compare_center_label": "→",
+    "compare_left_points": [
+      "多系统烟囱式对接，口径不一致",
+      "峰值扩容依赖人工，弹性滞后",
+      "观测分散，排障链路长"
+    ],
+    "compare_right_points": [
+      "统一数据与服务契约，口径单一来源",
+      "策略化弹性与容量基线，分钟级扩容",
+      "全链路可观测与统一排障入口"
+    ],
+    "script_hint": "左痛点右目标，一一对应。"
+  },
+  {
+    "id": "s03",
+    "type": "content",
+    "content_variant": "text",
+    "eyebrow": "过渡",
+    "title": "节奏分隔页",
+    "body": "下页展示横向阶段条与泳道两种流程叙事。",
+    "script_hint": "承上启下。"
+  },
+  {
+    "id": "s04",
+    "type": "content",
+    "content_variant": "process_flow",
+    "eyebrow": "流程",
+    "title": "交付流水线（横向阶段）",
+    "process_stages": [
+      { "label": "需求冻结", "desc": "范围、验收标准与里程碑写入基线" },
+      { "label": "联调预发", "desc": "灰度环境与契约测试全绿" },
+      { "label": "生产发布", "desc": "金丝雀观测通过后全量" },
+      { "label": "复盘沉淀", "desc": "SLO 与 Runbook 更新入库" }
+    ],
+    "script_hint": "按时间顺序讲清四步。"
+  },
+  {
+    "id": "s05",
+    "type": "content",
+    "content_variant": "process_flow",
+    "layout_hint": "swimlane",
+    "eyebrow": "协同",
+    "title": "跨职能泳道",
+    "flow_lanes": [
+      {
+        "lane_label": "产品",
+        "cells": [
+          { "label": "立项评审", "desc": "目标与约束对齐" },
+          { "label": "验收", "desc": "对照基线签字" }
+        ]
+      },
+      {
+        "lane_label": "工程",
+        "cells": [
+          { "label": "实现", "desc": "特性开发与单测" },
+          { "label": "上线", "desc": "发布与回滚预案" }
+        ]
+      },
+      {
+        "lane_label": "运维",
+        "cells": [
+          { "label": "容量", "desc": "基线与告警阈值" },
+          { "label": "值守", "desc": "on-call 与事故复盘" }
+        ]
+      }
+    ],
+    "script_hint": "按泳道讲清职责交接。"
+  },
+  {
+    "id": "s06",
+    "type": "content",
+    "content_variant": "architecture_stack",
+    "eyebrow": "架构",
+    "title": "分层上下文",
+    "layers": [
+      { "title": "接入层", "desc": "网关、鉴权、流控与 WAF，南北向统一入口" },
+      { "title": "应用服务层", "desc": "领域服务、编排与异步任务，契约驱动集成" },
+      { "title": "数据层", "desc": "事务库、缓存与检索，读写分离与归档策略" },
+      { "title": "观测与平台", "desc": "指标日志追踪统一采集，变更与发布自动化" }
+    ],
+    "script_hint": "自上而下说明边界。"
+  },
+  {
+    "id": "s07",
+    "type": "content",
+    "content_variant": "funnel",
+    "eyebrow": "增长",
+    "title": "转化漏斗",
+    "funnel_stages": [
+      { "label": "认知", "desc": "渠道曝光与主题内容触达目标客群" },
+      { "label": "兴趣", "desc": "试用与 Demo，验证核心场景价值" },
+      { "label": "决策", "desc": "POC 与安全评审，明确采购路径" },
+      { "label": "签约", "desc": "合同与交付计划，进入稳定运营" }
+    ],
+    "script_hint": "从宽到窄强调筛选。"
+  },
+  {
+    "id": "s08",
+    "type": "summary",
+    "eyebrow": "收尾",
+    "title": "下一步",
+    "key_points": ["联调窗口确认", "风险清单评审", "发布窗口预约"],
+    "script_hint": "收束行动项。"
+  }
+]

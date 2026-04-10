@@ -2,11 +2,11 @@
 
 name: SlideForge
 description: >
-  把飞书文档、本地文件（.md/.txt）或网页链接一键转换为高品质 1920×1080 演示内容。
-  支持三种交付格式（视频/PDF/交互式HTML），13种设计主题自动匹配，
-  所有产出自动附带大纲和逐字稿。8个独立Step，支持任意节点重跑。
+  把飞书文档、本地文件（.md/.txt）或网页一键转换为高品质演示内容。
+  支持视频/PDF/交互式HTML三种交付格式，13种设计主题、22种内容变体（含对照/流程/架构栈/漏斗等），
+  可选页内入场与 stagger 动效，8个独立Step自由组合。
 type: agent
-version: "3.0.1"
+version: "3.1.0"
 metadata:
   clawdbot:
     emoji: "🎬"
@@ -17,23 +17,19 @@ input:
     command:
       type: string
       enum: ["step0", "step1", "step2", "step3", "step4", "step5", "step6", "step7", "all"]
-      description: 执行哪个步骤（每个 Step 可独立调用）
+      description: 执行哪个步骤（可独立调用）
     source:
       type: string
       description: 飞书文档 URL、本地文件路径（.md/.txt）或网页 URL（Step 0 使用）
-    format:
+    scenes:
       type: string
-      enum: ["video", "pdf", "html"]
-      default: "video"
-      description: "交付格式（Step 6）。video=MP4视频，pdf=PDF文档，html=交互式网页演示"
-    channel:
+      description: scenes.json 文件路径（Step 1-6 输入）
+    design_params:
       type: string
-      enum: ["local", "feishu"]
-      default: "local"
-      description: "交付渠道（Step 7）。local=打包到本地，feishu=发布到飞书文档"
+      description: design_params.json 文件路径（Step 3 / Step 4 输入）
     design_mode:
       type: string
-      description: "设计主题。留空则根据内容自动选择。"
+      description: 设计主题 id。留空则根据内容自动选择。与 designMode 等价。
       enum:
         - electric-studio
         - bold-signal
@@ -48,10 +44,71 @@ input:
         - split-pastel
         - swiss-modern
         - vintage-editorial
+    designMode:
+      type: string
+      description: 同 design_mode（executor 别名，驼峰）
+    format:
+      description: 交付格式（Step 6 / command all）。单字符串或字符串数组，多选时同时生成多种产物。默认 video。
+      default: "video"
+      oneOf:
+        - type: string
+          enum: ["video", "pdf", "html"]
+        - type: array
+          minItems: 1
+          items:
+            type: string
+            enum: ["video", "pdf", "html"]
+    channel:
+      type: string
+      description: 交付渠道。默认 local（打包到 output_dir）。
+      enum: ["local", "feishu"]
+      default: "local"
     output_dir:
       type: string
       default: "./output"
       description: 输出目录（所有 Step 共用）
+    projectDir:
+      type: string
+      description: 同 output_dir（executor 别名，驼峰）
+    html_dir:
+      type: string
+      description: HTML 目录（Step 4 截图输入）
+    screenshots_dir:
+      type: string
+      description: 截图目录（Step 6 视频/PDF 输入）
+    audio_dir:
+      type: string
+      description: 音频目录（Step 6 视频合成输入）
+    output:
+      type: string
+      description: 视频输出路径（Step 6 format=video）
+    video_path:
+      type: string
+      description: 本地视频文件路径（Step 7 channel=feishu 上传用）
+    doc_title:
+      type: string
+      description: 飞书文档标题（Step 7 channel=feishu）
+    folder_token:
+      type: string
+      description: 飞书目标文件夹 token（Step 7 channel=feishu）
+    source_url:
+      type: string
+      description: 原文链接（附在交付文件末尾，可选）
+    voice:
+      type: string
+      description: Edge TTS 语音名称（Step 5，默认 zh-CN-XiaoxiaoNeural）
+    language:
+      type: string
+      description: 内容语言（Step 0/5，默认 zh-CN）
+    page_animations:
+      type: boolean
+      default: true
+      description: 是否启用页内入场动效（Step 2 写入 design_params；Step 3 HTML 注入；Step 4 有动画时等待就绪再截图）。传 false 关闭。
+    page_animation_preset:
+      type: string
+      enum: ["none", "fade", "stagger"]
+      default: "stagger"
+      description: 页内动效预设。none=无；fade=整页淡入；stagger=块级交错（需 page_animations 非 false）。
   required: ["command"]
 output:
   type: object
@@ -108,7 +165,7 @@ echo '{"command":"all","source":"./article.md","format":"html","output_dir":"./o
 | ------- | ------------------------------ | ----------------------------- |
 | `video` | `presentation.mp4`             | FFmpeg（`brew install ffmpeg`） |
 | `pdf`   | `presentation.pdf`             | 无额外依赖                         |
-| `html`  | `presentation.html`（单文件，可直接打开） | 无额外依赖                         |
+| `html`  | `presentation.html`（主入口：iframe 单页，hover + 入场动画）+ `presentation_static.html`（PNG 轮播）+ 同目录 `page_*.html` | 无额外依赖 |
 
 
 **无论选择哪种格式，都自动附带：**

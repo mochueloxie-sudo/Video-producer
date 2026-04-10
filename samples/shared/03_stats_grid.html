@@ -83,6 +83,19 @@
     font-size: 13px; color: {{TEXT_MUTED}};
   }
 
+  /* ── hover: 交互预览（避免 transform，与 data-vp-animate 入场动画不冲突）── */
+  @media (hover: hover) and (pointer: fine) {
+    .stat-card {
+      transition: outline-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      outline: 2px solid transparent;
+      outline-offset: 3px;
+    }
+    .stat-card:hover {
+      outline-color: rgba(255,255,255,0.28);
+      box-shadow: 0 14px 48px rgba(0,0,0,0.38);
+    }
+  }
+
   /* ── layout hints ─────────────────────────────────────────────────────── */
   /* hero-1: 第一个数据块放大，其余缩小 */
   body.layout-hero-1 .stats-row { align-items: stretch; gap: 24px; }

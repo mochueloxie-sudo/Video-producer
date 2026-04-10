@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Compare</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Manrope:wght@400;500;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { width: 1920px; height: 1080px; overflow: hidden; }
+
+  body {
+    width: 1920px; height: 1080px;
+    background: {{BODY_BG}};
+    font-family: '{{FONT}}', 'PingFang SC', sans-serif;
+    color: {{TEXT_PRIMARY}};
+    padding: 80px 120px;
+    position: relative;
+  }
+  .eyebrow {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.2em;
+    color: {{EYEBROW_COLOR}}; text-transform: uppercase; margin-bottom: 20px;
+  }
+  .title {
+    font-size: 58px; font-weight: 800; line-height: 1.05;
+    color: {{TEXT_PRIMARY}}; margin-bottom: 48px; max-width: 1200px;
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 36px;
+    align-items: stretch;
+    max-width: 1680px;
+  }
+  .compare-col {
+    background: {{PANEL_BG}};
+    border: {{PANEL_BORDER}};
+    border-top: {{PANEL_BORDER_TOP}};
+    border-bottom: {{PANEL_BORDER_BOTTOM}};
+    box-shadow: {{PANEL_SHADOW}};
+    border-radius: {{PANEL_RADIUS}};
+    backdrop-filter: blur({{PANEL_BLUR}});
+    -webkit-backdrop-filter: blur({{PANEL_BLUR}});
+    padding: 36px 40px 40px;
+    display: flex;
+    flex-direction: column;
+    min-height: 520px;
+  }
+  .compare-col-title {
+    font-size: 15px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: {{ACCENT}};
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid {{HAIRLINE_COLOR}};
+  }
+  .compare-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    flex: 1;
+  }
+  .compare-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    font-size: 22px;
+    line-height: 1.5;
+    color: {{TEXT_PRIMARY}};
+  }
+  .compare-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: {{ACCENT}};
+    margin-top: 10px;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px {{ACCENT}};
+  }
+  .compare-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-width: 100px;
+    align-self: center;
+  }
+  .compare-vs {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 2px solid {{HAIRLINE_COLOR}};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: {{ACCENT_LIGHT}};
+    background: rgba(255,255,255,0.03);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  }
+  .hairline {
+    position: absolute; bottom: 80px; left: 120px; right: 120px;
+    height: 1px; background: {{HAIRLINE_COLOR}};
+  }
+  .page-num {
+    position: absolute; bottom: 56px; right: 120px;
+    font-size: 13px; color: {{TEXT_MUTED}};
+  }
+
+  body.layout-wide-left .compare-grid { grid-template-columns: 1.25fr auto 0.85fr; }
+  body.layout-wide-right .compare-grid { grid-template-columns: 0.85fr auto 1.25fr; }
+
+  /* hover: 列用 outline/shadow；要点行与 stagger 的 li 一致（不用 transform） */
+  @media (hover: hover) and (pointer: fine) {
+    .compare-col {
+      transition: outline-color 0.22s ease, box-shadow 0.22s ease;
+      outline: 2px solid transparent;
+      outline-offset: 3px;
+    }
+    .compare-col:hover {
+      outline-color: rgba(255,255,255,0.28);
+      box-shadow: 0 18px 52px rgba(0,0,0,0.42);
+    }
+    .compare-list li {
+      transition: outline-color 0.2s ease, background-color 0.2s ease;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+    .compare-list li:hover {
+      outline-color: rgba(255,255,255,0.26);
+      background-color: rgba(255,255,255,0.06);
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="eyebrow">{{EYEBROW}}</div>
+  <h1 class="title">{{TITLE}}</h1>
+  <div class="compare-grid">
+    <div class="compare-col compare-col-left">
+      <div class="compare-col-title">{{COMPARE_LEFT_TITLE}}</div>
+      <ul class="compare-list">{{COMPARE_LEFT_POINTS}}</ul>
+    </div>
+    <div class="compare-center">
+      <div class="compare-vs">{{COMPARE_CENTER_LABEL}}</div>
+    </div>
+    <div class="compare-col compare-col-right">
+      <div class="compare-col-title">{{COMPARE_RIGHT_TITLE}}</div>
+      <ul class="compare-list">{{COMPARE_RIGHT_POINTS}}</ul>
+    </div>
+  </div>
+  <div class="hairline"></div>
+  <span class="page-num">{{PAGE_NUM}} / {{TOTAL}}</span>
+</body>
+</html>

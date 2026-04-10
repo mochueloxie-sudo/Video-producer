@@ -69,6 +69,20 @@
     font-size: 13px; color: {{TEXT_MUTED}};
   }
 
+  /* ── hover: 与入场动画并存（不用 transform）──────────────────────────── */
+  @media (hover: hover) and (pointer: fine) {
+    .col-right .kp-list .kp-item {
+      transition: outline-color 0.2s ease, background-color 0.2s ease;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+    .col-right .kp-list .kp-item:hover {
+      outline-color: rgba(255,255,255,0.26);
+      background-color: rgba(255,255,255,0.06);
+    }
+  }
+
   /* ── layout hints ─────────────────────────────────────────────────────── */
   /* wide-left: 60/40 */
   body.layout-wide-left  .cols { grid-template-columns: 1.5fr 1fr; }

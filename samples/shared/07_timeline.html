@@ -83,6 +83,20 @@
     font-size: 13px; color: {{TEXT_MUTED}};
   }
 
+  /* ── hover: 与入场动画并存（不用 transform）──────────────────────────── */
+  @media (hover: hover) and (pointer: fine) {
+    .timeline .step {
+      transition: outline-color 0.2s ease, background-color 0.2s ease;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+    .timeline .step:hover {
+      outline-color: rgba(255,255,255,0.22);
+      background-color: rgba(255,255,255,0.04);
+    }
+  }
+
   /* ── layout hints ─────────────────────────────────────────────────────── */
   /* horizontal: 步骤横向排列 */
   body.layout-horizontal .title { margin-bottom: 80px !important; }

@@ -133,6 +133,10 @@ Analyze the content and produce a structured JSON array of scenes for a video pr
 - \`quote_context\` — **HYBRID**: impactful quote + attribution + context paragraph (richer than plain quote, use when the quote needs background)
 - \`text_icons\` — **HYBRID**: prose text on the left + 2-4 icon anchors on the right (use when explaining a concept that benefits from visual labels)
 - \`icon_grid\` — visual grid of 4-9 icon cards, each with emoji + label + one-line desc (use for feature matrices, capability overviews, category taxonomies; ALWAYS include desc for every icon)
+- \`compare\` — **Before/After, A vs B, pros/cons**: two titled columns with parallel bullet lists (same count 3-5 each when possible). Use for方案对比、现状vs目标、技术选型对照 — NOT for numeric tables (use \`table\` instead)
+- \`process_flow\` — **narrative flow**: either (a) \`process_stages\` 3-6 horizontal stage cards with label+desc, OR (b) \`flow_lanes\` 2-3 swimlanes each with 2-4 cells (label+desc). Use for实施链路、跨团队协同、流水线阶段。Do not use plain \`steps\` for this variant — use \`process_stages\` or \`flow_lanes\` fields below. Reserve \`timeline\` for time-ordered milestones without swimlanes.
+- \`architecture_stack\` — **3-5 vertical system layers** (e.g. 接入层 / 服务层 / 数据层): each layer title + one-line desc. Use for技术架构、上下文边界、分层说明
+- \`funnel\` — **3-5 conversion tiers** (widest → narrow): each tier label + short desc. Use for获客漏斗、阶段转化、从认知到成交 — keep copy short, avoid chart junk
 
 **Content Density Principles — READ CAREFULLY:**
 
@@ -147,6 +151,10 @@ Each slide has a 1920×1080 canvas. Empty space looks unprofessional. Your prima
 | number_bullets | 1 big stat + 2-4 bullets × (title + desc) | key_point_descs — REQUIRED |
 | stats_grid | 2-4 stats × (number + label + desc) | stat.desc — REQUIRED for every stat |
 | timeline | 3-5 steps × (label + desc ~20 chars) | step.desc — REQUIRED for every step |
+| compare | 3-5 bullets ×2 columns | compare_left_points & compare_right_points — same length when possible |
+| process_flow | stages OR swimlanes | every stage/cell has desc (≤36 chars zh) |
+| architecture_stack | 3-5 layers | layer.desc REQUIRED |
+| funnel | 3-5 tiers | funnel desc REQUIRED |
 | two_col | left prose (2-3 sentences) + right bullets | left_body — write 2+ sentences |
 | quote_context | quote + attribution + context paragraph | context_body — always include |
 
@@ -157,12 +165,12 @@ Each slide has a 1920×1080 canvas. Empty space looks unprofessional. Your prima
 2. **Prefer fewer, richer slides over many sparse ones.** If two adjacent topics each only have 2 bullet points, merge them into one \`two_col\` or \`card_grid\` slide.
 3. No two consecutive slides with the same content_variant (enforce visual rhythm)
 4. Use \`stats_grid\` or \`number\` when content has concrete metrics; use \`panel_stat\` when a metric AND key points belong together
-5. Use \`timeline\` for processes, steps, histories, roadmaps
-6. Use \`two_col\` for topics needing both context and key takeaways
+5. Use \`timeline\` for time-ordered milestones; use \`process_flow\` when the story is a **pipeline / swimlane / handoff** (fill \`process_stages\` or \`flow_lanes\`)
+6. Use \`two_col\` for context + takeaways; use \`compare\` for **symmetric contrast** (two titled lists); use \`architecture_stack\` for layering; use \`funnel\` for conversion stages
 7. Use hybrid variants (\`panel_stat\`, \`number_bullets\`, \`quote_context\`, \`text_icons\`) when content genuinely needs two elements — max 2 hybrid slides per deck
 8. Titles: crisp and punchy (≤15 chars zh, ≤8 words en)
 9. Eyebrow: short category label (e.g. "核心数据", "关键洞察", "BACKGROUND")
-10. **layout_hint defaults that maximize visual impact:** panel with 3 rich items → \`grid-3\`; panel with 4-6 items → \`cards\`; card_grid with exactly 4 cards → \`2x2\`; timeline with ≤4 steps → \`horizontal\`
+10. **layout_hint defaults that maximize visual impact:** panel with 3 rich items → \`grid-3\`; panel with 4-6 items → \`cards\`; card_grid with exactly 4 cards → \`2x2\`; timeline with ≤4 steps → \`horizontal\`; process_flow with \`flow_lanes\` → \`swimlane\`
 
 **JSON schema per variant:**
 
@@ -170,6 +178,10 @@ Each slide has a 1920×1080 canvas. Empty space looks unprofessional. Your prima
 - panel:      "stack"(default) | "grid-3" | "sidebar-left" | "cards" | "numbered"
 - stats_grid: "row"(default)   | "hero-1" | "2x2"
 - timeline:   "vertical"(def)  | "horizontal" | "alternating"
+- process_flow: "horizontal" (stages rail) | "swimlane" (requires flow_lanes[])
+- compare:    "equal"(default) | "wide-left" | "wide-right"
+- architecture_stack: omit or "compact" when ≥5 layers
+- funnel:     omit or "compact" when ≥5 tiers
 - two_col:    "equal"(default) | "wide-left" | "wide-right"
 - quote:      "center"(def)    | "left-bar" | "full"
 - number:     "center"(def)    | "split"
@@ -188,6 +200,24 @@ stats_grid:
 timeline:
   steps: [{ num: "01", label: "阶段名", desc: "该阶段的核心特征或成果，≤30 chars" }]
   (desc REQUIRED for every step)
+
+compare:
+  compare_left_title: string    (column headline, e.g. "现状" / "方案 A")
+  compare_right_title: string
+  compare_center_label: string  (optional, default "VS" — use "→" for before→after)
+  compare_left_points: string[]   (3-5 items, parallel to right column)
+  compare_right_points: string[]  (same length as left when possible)
+
+process_flow:
+  EITHER process_stages: [{ label: string, desc: string }]  (3-6 items for horizontal rail)
+  OR flow_lanes: [{ lane_label: string, cells: [{ label: string, desc: string }] }]  (2-3 lanes, 2-4 cells each)
+  Do not set \`steps\` on this variant unless you also set content_variant to process_flow and omit process_stages (legacy: steps will map to the rail)
+
+architecture_stack:
+  layers: [{ title: string, desc: string }]   (3-5 layers, desc REQUIRED)
+
+funnel:
+  funnel_stages: [{ label: string, desc: string }]  (3-5 tiers, top = widest audience, bottom = most qualified; desc REQUIRED)
 
 two_col:
   left_body: string   (prose, 2-3 sentences minimum — give context, background, or explanation)

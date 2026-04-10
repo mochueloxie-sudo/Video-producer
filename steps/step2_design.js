@@ -195,6 +195,19 @@ function buildPageDirections(scenes, designParams, design_mode) {
     const hasIcons     = Array.isArray(scene.icons)         && scene.icons.length > 0;
     const hasChart     = Array.isArray(scene.chart_data)    && scene.chart_data.length > 0;
     const hasNavBar    = Array.isArray(scene.nav_items)     && scene.nav_items.length > 0;
+    const hasCompare =
+      Array.isArray(scene.compare_left_points) && scene.compare_left_points.length > 0 &&
+      Array.isArray(scene.compare_right_points) && scene.compare_right_points.length > 0;
+    const hasProcessFlow =
+      scene.content_variant === 'process_flow' ||
+      (Array.isArray(scene.process_stages) && scene.process_stages.length >= 2) ||
+      (Array.isArray(scene.flow_lanes) && scene.flow_lanes.length >= 1);
+    const hasArchLayers =
+      scene.content_variant === 'architecture_stack' ||
+      (Array.isArray(scene.layers) && scene.layers.length >= 2);
+    const hasFunnelStages =
+      scene.content_variant === 'funnel' ||
+      (Array.isArray(scene.funnel_stages) && scene.funnel_stages.length >= 2);
     // hybrid variant detection
     const hasStat     = scene.stat_value != null;
     const hasContext  = scene.context_body != null;
@@ -262,6 +275,38 @@ function buildPageDirections(scenes, designParams, design_mode) {
       content_variant = 'text_icons';
       visual_priority = ['title', 'body', 'icons'];
       density = 'medium';
+      decoration_policy = 'none';
+      avoid_elements.push('quote', 'code-block');
+    } else if (hasCompare) {
+      page_intent = 'comparison';
+      hero_element = 'compare';
+      content_variant = 'compare';
+      visual_priority = ['title', 'left_column', 'right_column'];
+      density = 'medium';
+      decoration_policy = 'none';
+      avoid_elements.push('quote', 'code-block', 'timeline');
+    } else if (hasProcessFlow) {
+      page_intent = 'process';
+      hero_element = 'process_flow';
+      content_variant = 'process_flow';
+      visual_priority = ['title', 'sequence'];
+      density = 'medium';
+      decoration_policy = 'none';
+      avoid_elements.push('quote', 'big-number');
+    } else if (hasArchLayers) {
+      page_intent = 'structure';
+      hero_element = 'architecture_stack';
+      content_variant = 'architecture_stack';
+      visual_priority = ['title', 'layers'];
+      density = scene.layers && scene.layers.length >= 5 ? 'rich' : 'medium';
+      decoration_policy = 'none';
+      avoid_elements.push('quote', 'code-block');
+    } else if (hasFunnelStages) {
+      page_intent = 'metric';
+      hero_element = 'funnel';
+      content_variant = 'funnel';
+      visual_priority = ['title', 'funnel'];
+      density = scene.funnel_stages && scene.funnel_stages.length >= 5 ? 'rich' : 'medium';
       decoration_policy = 'none';
       avoid_elements.push('quote', 'code-block');
     // ── standard single variants ─────────────────────────────────────────
@@ -494,6 +539,25 @@ function computeLayoutHint(scene, variant) {
       const count = Array.isArray(scene.cards) ? scene.cards.length : 0;
       if (count === 4) return '2x2';
       return null;
+    }
+    case 'compare': {
+      const lc = (scene.compare_left_points || []).join('').length;
+      const rc = (scene.compare_right_points || []).join('').length;
+      if (lc > rc * 1.35) return 'wide-left';
+      if (rc > lc * 1.35) return 'wide-right';
+      return 'equal';
+    }
+    case 'process_flow': {
+      if (Array.isArray(scene.flow_lanes) && scene.flow_lanes.length >= 1) return 'swimlane';
+      return 'horizontal';
+    }
+    case 'architecture_stack': {
+      const n = Array.isArray(scene.layers) ? scene.layers.length : 0;
+      return n >= 5 ? 'compact' : null;
+    }
+    case 'funnel': {
+      const n = Array.isArray(scene.funnel_stages) ? scene.funnel_stages.length : 0;
+      return n >= 5 ? 'compact' : null;
     }
     default:
       return null;

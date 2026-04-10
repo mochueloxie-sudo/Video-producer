@@ -13,8 +13,16 @@ output/
 output_tencent_swiss/
 pipeline_run_output/
 project/
+demo_html_out/
+preview_four_variants/
+test_html_only/
+test_preview_light_swiss/
+
+# Local agent / CI scratch
+.check_run/
 
 # Test artifacts
+release_smoke_*/
 test_output/
 test_full/
 test_step0/
@@ -22,6 +30,8 @@ test_step1/
 test_project/
 test_themes/
 test_e2e/
+test_tencent_html/
+tencent_html_demo/
 debug_html/
 preview/
 preview_*.html

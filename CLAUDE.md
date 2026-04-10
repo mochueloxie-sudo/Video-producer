@@ -21,7 +21,7 @@
 | 核心渲染   | `utils/html_generator.js`          | 加载样张 → 替换 token → 注入 CSS → 写出 HTML                                                                              |
 | 页内动画   | `utils/page_animations.js`         | P0：`design_params.page_animations` 时注入整页入场 CSS + 启动脚本（与 FFmpeg 的 `steps/animations/animation-strategies.js` 分离） |
 | 截图     | `utils/screenshot.js`              | Puppeteer 批量截图 1920×1080                                                                                        |
-| 样张     | `samples/{theme}/`                 | 13 主题 × 15+ 变体，纯 HTML + CSS                                                                                     |
+| 样张     | `samples/{theme}/` + `samples/shared/` | 13 主题；每主题一组样张 + `shared/` 通用变体（含 compare / process_flow / architecture_stack / funnel），纯 HTML + CSS |
 | Step 0 | `steps/step0_analyze.js`           | MiniMax LLM 分析内容 → scenes.json                                                                                  |
 | Step 1 | `steps/step1_script.js`            | MiniMax LLM 生成逐字稿                                                                                               |
 | Step 2 | `steps/step2_design.js`            | 规则引擎：主题选择 + 变体推断 + layout_hint                                                                                  |
@@ -56,10 +56,11 @@
 - `10_icon_grid.html` / `11_code_block.html` / `12_table.html`
 - `13_card_grid.html` / `14_nav_bar.html` / `15_chart_demo.html`
 
-`shared/` 通用变体（主题无关）：
+`shared/` 通用变体（主题无关，**全主题经 `loadTemplate` 回退共用**）：
 
 - `03_stats_grid.html` / `07_timeline.html` / `08_two_col.html`
 - `16_panel_stat.html` / `17_number_bullets.html` / `18_quote_context.html` / `19_text_icons.html`
+- `20_compare.html` / `21_process_flow.html` / `22_architecture_stack.html` / `23_funnel.html`
 
 ### Token 规范
 
@@ -81,6 +82,10 @@
 | `number`     | `center`（默认）/ `split`                                         |
 | `card_grid`  | 默认 / `2x2`                                                    |
 | `icon_grid`  | 自动（按数量推断列数）                                                   |
+| `compare`    | `equal`（默认）/ `wide-left` / `wide-right`                         |
+| `process_flow` | `horizontal`（默认，阶段条）/ `swimlane`（需 `flow_lanes[]`）          |
+| `architecture_stack` | 默认 / `compact`（层数多）                                  |
+| `funnel`     | 默认 / `compact`（层数多）                                        |
 
 
 ---
@@ -222,7 +227,7 @@ Step0：`scenes.json` 仍为**纯 scenes 数组**；`project.json` 可含 `recom
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | **0** | `design_params.page_animations`（Step2 默认 `true`）+ `utils/page_animations.js` 注入 CSS + boot 脚本；`screenshot.js` 在开启动画时等待 `data-vp-anim-ready` | **已落地**         |
 | **1** | `html_generator` 为列表/卡片/时间线等块加 `data-vp-animate` + 行内 stagger；`page_animation_preset`: `none` / `fade` / `stagger`；Step3 传入完整 `design_params` | **已落地**         |
-| **2** | `format=video`：Puppeteer 录制动效帧；`presentation.html` 轮播与原生 HTML 动效策略统一                                                                                  | 待做               |
+| **2** | `format=video`：Puppeteer 录制动效帧；与 `presentation.html`（iframe 单页）动效策略对齐                                                                                | 待做               |
 
 
 **与现有文件分工**
@@ -238,7 +243,7 @@ Step0：`scenes.json` 仍为**纯 scenes 数组**；`project.json` 可含 `recom
 
 ### P1 — 样张丰富度 + 用户自定义主题
 
-当前 13 主题 + 20+ 变体覆盖了大部分场景，但用户可能有自己的品牌风格：
+当前 13 主题 + **22** 个 `content_variant`（含 `shared/` 四款叙事变体）覆盖大部分场景，但用户可能有自己的品牌风格：
 
 - **持续拓展内置样张**：
   - 新增行业垂直主题（医疗、教育、金融等）

@@ -2,6 +2,7 @@
 
 [中文](README.md)
 [Changelog](CHANGELOG.md)
+[Agent skill: SKILL.md](SKILL.md)
 
 > Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML — in under 10 minutes.
 
@@ -9,22 +10,98 @@
 [License: MIT](LICENSE)
 [Version](_meta.json)
 
+**This repo is primarily built for AI agents**: a standard skill file plus a JSON manifest let **Cursor, Codex, OpenClaw / Clawdbot**, and similar run the same `executor.js` pipeline (stdin JSON → stdout results) in a sandbox or locally. Human developers can also run `node executor.js` directly.
+
 Feed in a Feishu doc, Markdown file, or any URL. The pipeline analyses your content with MiniMax LLM, picks one of **13 design themes**, renders pixel-perfect HTML slides, and packages the result in your chosen format — all fully automatic.
 
-**[View demo output →](examples/demo-output/)** Open `presentation.html` in your browser to see a live example.
-
----
+**[View demo output →](examples/demo-output/)** Open `presentation.html` (iframe slides: hover + entrance animations). For PNG-only carousel matching PDF frames, use `presentation_static.html`.
 
 ## Features
 
+- **13 design themes** — 7 dark + 6 light; each is a full 1920×1080 template pack with its own palette and tone, wired to every style variant below (see **Design themes**)
 - **3 input sources** — Feishu docs, local `.md`/`.txt` files, web pages
 - **3 output formats** — MP4 video (with TTS narration), PDF, interactive HTML slideshow
-- **13 design themes** — 7 dark + 6 light, auto-selected by content keywords
-- **20+ content variants** — panels, stats grids, timelines, card grids, icon matrices, charts, tables, quotes, code blocks, and hybrid layouts
-- **Layout hints** — same variant, different visual arrangements (`grid-3`, `cards`, `hero-1`, `horizontal`, …)
+- **22 style variants** — narrative, data, flow, compare, architecture/funnel, cards, code, and hybrid layouts—unified look per theme (see **Style variants**)
+- **Layout hints** — many variants offer alternate compositions (dense grids, cards, wide left/right, swimlanes, …) without changing the base style
 - **Adaptive typography** — font sizes, grid columns, and density classes adjust to content length automatically
+- **In-slide motion (HTML / screenshots)** — `design_params.page_animations` and `page_animation_preset` (`none` \| `fade` \| `stagger`); interactive `presentation.html` replays entrance motion on page change; `presentation_static.html` is PNG-only frames aligned with PDF
 - **8 independent steps** — run the full pipeline or any step in isolation; all intermediate artifacts are persisted to disk
 - **Outline + script** — every export includes `outline.md` and `script.md`
+- **Agent-ready** — `SKILL.md` + `_meta.json` ship with the npm package (see **Agent setup (required)** below)
+
+---
+
+## Design themes
+
+Each theme is a **complete visual system**: typography, palette, panel treatment, ornament, and light/dark mood are authored once under `samples/` and applied across **covers, body slides, data, and flow layouts**—so the deck reads as one production, not a patchwork of one-offs.
+
+The repo ships **13** finished themes (7 dark / 6 light), all wired to the **22 style variants** below—switching themes changes the “film grade and art direction” while timelines, funnels, compares, stacks, and the rest stay available.
+
+Set `design_mode` in JSON to **pin** a theme id; omit it for automatic selection (priority and rules: **Agent setup → How `design_mode` is resolved** below).
+
+### Dark
+
+| Theme               | Accent                 | Best for                   |
+| ------------------- | ---------------------- | -------------------------- |
+| `electric-studio`   | Blue-purple + sky blue | General (default fallback) |
+| `bold-signal`       | Orange-red             | Business, branding         |
+| `creative-voltage`  | Electric blue          | Creative, design           |
+| `dark-botanical`    | Warm gold              | Humanities, education      |
+| `neon-cyber`        | Neon cyan + purple     | Sci-fi, AI, gaming         |
+| `terminal-green`    | GitHub green + blue    | Tech docs, APIs            |
+| `deep-tech-keynote` | Sky blue + blue-purple | Keynote talks              |
+
+### Light
+
+| Theme               | Accent            | Best for              |
+| ------------------- | ----------------- | --------------------- |
+| `swiss-modern`      | Pure black        | Minimalist            |
+| `paper-ink`         | Red + black       | Editorial, publishing |
+| `vintage-editorial` | Brown-gold        | Retro, literary       |
+| `notebook-tabs`     | Mint green        | Notes, journaling     |
+| `pastel-geometry`   | Pastel + geometry | Playful, casual       |
+| `split-pastel`      | Soft pink + blue  | Gentle, feminine      |
+
+---
+
+## Style variants
+
+**22** built-in layouts span everything from a single strong message to layered technical storytelling; **all variants work with all 13 themes**, so you can swap the art direction without giving up compare views, funnels, stacks, or timelines.
+
+- **Narrative & reading** — hero text, bullet panels, two-column prose, pull quotes, big-number emphasis, and more.
+- **Data & metrics** — multi-stat boards, tables, light charts, and hybrids (e.g. number + bullets, list + stat).
+- **Flow & structure** — timelines, stage rails and swimlanes, layered architecture stacks, conversion funnels, side-by-side contrast (e.g. before/after).
+- **Showcase & assets** — icon/emoji grids, card walls, code blocks, section nav bars, text + icon mixes.
+
+Many variants also support **alternate compositions** (multi-column grids, card layouts, asymmetric columns, swimlanes, …) via `layout_hint`—**change layout without changing the base variant**. Field names, allowed values, and machine-readable variant ids are in **`SKILL.md`**; how they are inferred is under **Agent setup → How variants and layout hints are chosen** below.
+
+---
+
+## Agent setup (required)
+
+For **Cursor, Codex, OpenClaw / Clawdbot**, and similar: after cloning or installing the package, **read and register `SKILL.md`** (full schema and examples align with `_meta.json`).
+
+| File | Role |
+|------|------|
+| **`SKILL.md`** | **Required skill bundle**: YAML front matter (`type: agent`, `input`/`output` schema, **includes all 13 theme ids**) plus step-by-step CLI examples; register it with your platform’s Skills / Plugins rules. |
+| **`_meta.json`** | Lightweight manifest (version, `command` enum, `executor` path) for discovery and tooling. |
+| **`executor.js`** | Single entrypoint: `echo '<json>' \| node executor.js` — matches the examples in `SKILL.md`. |
+
+**`npm pack` / `npm publish` tarballs include `SKILL.md` and `_meta.json`** alongside `steps/`, `samples/`, and other runtime files—no separate skill copy step.
+
+### How `design_mode` is resolved
+
+Matches the **Design themes** section above. When `design_mode` is **not** in the current request JSON, resolution order is:
+
+1. **`recommended_design_mode`** from Step 0 in `project.json` (when the LLM returns the object wrapper with a valid theme id).
+2. **`design_mode`** in `project.json` if set and not the default `electric-studio`.
+3. **Content-keyword rules** (`inferContentType` + `CONTENT_TYPE_MAP`), e.g. humanities / curation → `dark-botanical`.
+
+An explicit `design_mode` in the **current** `executor.js` JSON always wins.
+
+### How variants and layout hints are chosen
+
+Step 0 structures content into scenes with suggested layouts; Step 2 **infers and rhythm-corrects** variants (so consecutive slides do not all look identical). `layout_hint` tweaks composition **without swapping the HTML template**. For full manual control, edit `scenes.json` / `design_params.json` and re-run from the relevant step.
 
 ---
 
@@ -42,9 +119,11 @@ cp .env.example .env
 
 # 3. Run (one command)
 echo '{"command":"all","source":"./examples/test_article.md","format":"html","output_dir":"./output"}' | node executor.js
+# Optional: pin a theme (see “Design themes” above)
+# echo '{"command":"all","source":"./examples/test_article.md","format":"html","output_dir":"./output","design_mode":"deep-tech-keynote"}' | node executor.js
 
 # 4. Open the result
-open ./output/presentation.html
+open ./output/presentation.html   # primary; PNG carousel: presentation_static.html
 ```
 
 ### Other Formats
@@ -126,77 +205,6 @@ FEISHU_APP_SECRET=...
 
 ---
 
-## Themes
-
-Leave `design_mode` empty for automatic resolution, or pass a theme id in the JSON for every run.
-
-**Resolution order** (when `design_mode` is **not** in the request JSON):
-
-1. `recommended_design_mode` from Step 0 (written to `project.json` when the LLM returns the object wrapper with a valid theme id).
-2. `design_mode` in `project.json` if present and not the default `electric-studio`.
-3. Content-keyword rules (`inferContentType` + `CONTENT_TYPE_MAP`), e.g. humanities / curation → `dark-botanical`.
-
-An explicit `design_mode` in the **current** `executor.js` JSON always wins.
-
-### Dark
-
-
-| Theme               | Accent                 | Best for                   |
-| ------------------- | ---------------------- | -------------------------- |
-| `electric-studio`   | Blue-purple + sky blue | General (default fallback) |
-| `bold-signal`       | Orange-red             | Business, branding         |
-| `creative-voltage`  | Electric blue          | Creative, design           |
-| `dark-botanical`    | Warm gold              | Humanities, education      |
-| `neon-cyber`        | Neon cyan + purple     | Sci-fi, AI, gaming         |
-| `terminal-green`    | GitHub green + blue    | Tech docs, APIs            |
-| `deep-tech-keynote` | Sky blue + blue-purple | Keynote talks              |
-
-
-### Light
-
-
-| Theme               | Accent            | Best for              |
-| ------------------- | ----------------- | --------------------- |
-| `swiss-modern`      | Pure black        | Minimalist            |
-| `paper-ink`         | Red + black       | Editorial, publishing |
-| `vintage-editorial` | Brown-gold        | Retro, literary       |
-| `notebook-tabs`     | Mint green        | Notes, journaling     |
-| `pastel-geometry`   | Pastel + geometry | Playful, casual       |
-| `split-pastel`      | Soft pink + blue  | Gentle, feminine      |
-
-
----
-
-## Content Variants
-
-The LLM automatically selects the best variant for each slide:
-
-
-| Variant          | Template            | Trigger                  |
-| ---------------- | ------------------- | ------------------------ |
-| `text`           | `01_text_only`      | Body paragraphs          |
-| `panel`          | `02_panel`          | `key_points[]` list      |
-| `stats_grid`     | `03_stats_grid`     | `stats[]` metrics        |
-| `number`         | `04_number`         | `big_number` hero stat   |
-| `quote`          | `05_quote`          | `quote_body` citation    |
-| `timeline`       | `07_timeline`       | `steps[]` flow           |
-| `two_col`        | `08_two_col`        | Left + right columns     |
-| `icon_grid`      | `10_icon_grid`      | `icons[]` emoji grid     |
-| `code`           | `11_code_block`     | `code_snippet`           |
-| `table`          | `12_table`          | `table_headers[]` data   |
-| `card_grid`      | `13_card_grid`      | `cards[]`                |
-| `nav_bar`        | `14_nav_bar`        | Section navigation       |
-| `chart`          | `15_chart_demo`     | `chart_series` bar chart |
-| `panel_stat`     | `16_panel_stat`     | Hybrid: list + stat      |
-| `number_bullets` | `17_number_bullets` | Hybrid: number + bullets |
-| `quote_context`  | `18_quote_context`  | Hybrid: quote + context  |
-| `text_icons`     | `19_text_icons`     | Hybrid: text + icons     |
-
-
-Each variant supports **layout hints** (e.g. `grid-3`, `cards`, `hero-1`, `horizontal`, `2x2`) to vary the visual arrangement without changing the template.
-
----
-
 ## Output Structure
 
 ```
@@ -209,7 +217,8 @@ output/
 ├── screenshots/
 │   ├── page_001.png       # 1920×1080 screenshots
 │   └── ...
-├── presentation.html      # Interactive slideshow (format=html)
+├── presentation.html        # Primary: iframe slides (hover + motion)
+├── presentation_static.html # PNG carousel (same as PDF frames)
 ├── presentation.pdf       # PDF document (format=pdf)
 ├── presentation.mp4       # Video with narration (format=video)
 ├── outline.md             # Content outline
@@ -267,7 +276,7 @@ See `[_meta.json](_meta.json)` for the full input/output schema and `[SKILL.md](
 ```
 slide-forge/
 ├── executor.js                     # Entry point — routes commands to steps
-├── _meta.json                      # Agent integration schema (v3.0.1)
+├── _meta.json                      # Agent integration schema
 ├── SKILL.md                        # Agent skill specification
 ├── steps/
 │   ├── step0_analyze.js            # Content analysis (MiniMax LLM)
@@ -298,7 +307,10 @@ slide-forge/
 │   ├── test_article.md             # Sample article for testing
 │   ├── tencent_intro_light.md      # Long-form corp. intro sample (e.g. swiss-modern)
 │   ├── full_variant_test.md        # Full variant coverage test
+│   ├── four_new_variants_scenes.json # compare / process_flow / architecture_stack / funnel smoke deck
 │   └── scenes_example.json         # Manual scenes.json reference
+├── SKILL.md                        # Agent skill (YAML + usage; published in npm tarball)
+├── _meta.json                      # Agent manifest (version, schema, executor pointer)
 ├── .env.example                    # Environment variable template
 ├── CHANGELOG.md                    # Version history (user-facing)
 └── package.json

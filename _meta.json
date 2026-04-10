@@ -1,7 +1,7 @@
 {
   "name": "slide-forge",
-  "version": "3.0.1",
-  "description": "把飞书文档、本地文件（.md/.txt）或网页一键转换为高品质演示内容。支持视频/PDF/交互式HTML三种交付格式，13种设计主题自动匹配，8个独立Step自由组合。",
+  "version": "3.1.0",
+  "description": "把飞书文档、本地文件（.md/.txt）或网页一键转换为高品质演示内容。支持视频/PDF/交互式HTML三种交付格式，13种设计主题、22种内容变体（含对照/流程/架构栈/漏斗等），可选页内入场与 stagger 动效，8个独立Step自由组合。",
   "type": "agent",
   "metadata": {
     "clawdbot": {
@@ -27,11 +27,11 @@
       },
       "design_params": {
         "type": "string",
-        "description": "design_params.json 文件路径（Step 3 输入）"
+        "description": "design_params.json 文件路径（Step 3 / Step 4 输入）"
       },
       "design_mode": {
         "type": "string",
-        "description": "设计主题。留空则根据内容自动选择。",
+        "description": "设计主题 id。留空则根据内容自动选择。与 designMode 等价。",
         "enum": [
           "electric-studio",
           "bold-signal",
@@ -48,11 +48,27 @@
           "vintage-editorial"
         ]
       },
+      "designMode": {
+        "type": "string",
+        "description": "同 design_mode（executor 别名，驼峰）"
+      },
       "format": {
-        "type": ["string", "array"],
-        "description": "交付格式。可单选或多选。默认 video。",
-        "enum": ["video", "pdf", "html"],
-        "default": "video"
+        "description": "交付格式（Step 6 / command all）。单字符串或字符串数组，多选时同时生成多种产物。默认 video。",
+        "default": "video",
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": ["video", "pdf", "html"]
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": ["video", "pdf", "html"]
+            }
+          }
+        ]
       },
       "channel": {
         "type": "string",
@@ -64,6 +80,10 @@
         "type": "string",
         "default": "./output",
         "description": "输出目录（所有 Step 共用）"
+      },
+      "projectDir": {
+        "type": "string",
+        "description": "同 output_dir（executor 别名，驼峰）"
       },
       "html_dir": {
         "type": "string",
@@ -104,6 +124,17 @@
       "language": {
         "type": "string",
         "description": "内容语言（Step 0/5，默认 zh-CN）"
+      },
+      "page_animations": {
+        "type": "boolean",
+        "default": true,
+        "description": "是否启用页内入场动效（Step 2 写入 design_params；Step 3 HTML 注入；Step 4 有动画时等待就绪再截图）。传 false 关闭。"
+      },
+      "page_animation_preset": {
+        "type": "string",
+        "enum": ["none", "fade", "stagger"],
+        "default": "stagger",
+        "description": "页内动效预设。none=无；fade=整页淡入；stagger=块级交错（需 page_animations 非 false）。"
       }
     },
     "required": ["command"]
