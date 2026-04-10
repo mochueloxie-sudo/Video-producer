@@ -72,8 +72,8 @@ Step 0 ── 内容分析 ─────────── MiniMax LLM → sce
 Step 1 ── 逐字稿生成 ───────── MiniMax LLM → scenes[].script
   │
   ▼
-Step 2 ── 设计参数 ─────────── 规则引擎 → design_params.json
-  │                               (主题自动选择、变体推断、布局提示)
+Step 2 ── 设计参数 ─────────── 本地 preset → design_params.json
+  │                               (显式 design_mode / Step0 推荐 / project 保存 / 关键词规则 + 变体与布局提示)
   ▼
 Step 3 ── HTML 渲染 ────────── 模板 token 替换 → page_XXX.html
   │
@@ -126,7 +126,15 @@ FEISHU_APP_SECRET=...
 
 ## 13 种设计主题
 
-`design_mode` 为空时自动选择，也可手动指定：
+`design_mode` 为空时按下面顺序自动解析，也可在每次调用的 JSON 里**手动指定**合法主题 id。
+
+**未在当次 JSON 里传 `design_mode` 时**（优先级由高到低）：
+
+1. `project.json` 中 Step0 写入的 **`recommended_design_mode`**（模型返回对象且 id 合法）。  
+2. `project.json` 中的 **`design_mode`**（且不等于默认 `electric-studio`）。  
+3. 正文与标题关键词规则（`inferContentType` + `CONTENT_TYPE_MAP`），例如人文 / 社科 / 策展等 → **`dark-botanical`**。
+
+**当次 JSON 里显式传入的 `design_mode`** 始终最高优先级。
 
 ### 深色主题
 
@@ -285,6 +293,7 @@ slide-forge/
 │   └── shared/                     # 主题无关变体（stats、timeline 等）
 ├── examples/
 │   ├── test_article.md             # 测试用示例文章
+│   ├── tencent_intro_light.md    # 长文企业介绍示例（如 swiss-modern）
 │   ├── full_variant_test.md        # 全变体覆盖测试
 │   └── scenes_example.json         # 手动 scenes.json 参考
 ├── .env.example                    # 环境变量模板

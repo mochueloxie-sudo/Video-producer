@@ -31,7 +31,7 @@ Feed in a Feishu doc, Markdown file, or any URL. The pipeline analyses your cont
 
 ```bash
 # 1. Install
-git clone https://github.com/heytea/slide-forge.git
+git clone https://github.com/mochueloxie-sudo/SlideForge.git
 cd slide-forge
 npm install
 
@@ -73,8 +73,8 @@ Step 0 ── Content Analysis ──────── MiniMax LLM → scenes.j
 Step 1 ── Script Generation ─────── MiniMax LLM → scenes[].script
   │
   ▼
-Step 2 ── Design Parameters ─────── Rule engine → design_params.json
-  │                                  (theme auto-selection, variant inference, layout hints)
+Step 2 ── Design Parameters ─────── Local presets → design_params.json
+  │                                  (explicit design_mode, Step0 recommendation, saved theme, or content-keyword rules + variant/layout hints)
   ▼
 Step 3 ── HTML Rendering ───────── Template tokens → page_XXX.html
   │
@@ -127,7 +127,15 @@ FEISHU_APP_SECRET=...
 
 ## Themes
 
-Leave `design_mode` empty for auto-selection, or specify one:
+Leave `design_mode` empty for automatic resolution, or pass a theme id in the JSON for every run.
+
+**Resolution order** (when `design_mode` is **not** in the request JSON):
+
+1. `recommended_design_mode` from Step 0 (written to `project.json` when the LLM returns the object wrapper with a valid theme id).
+2. `design_mode` in `project.json` if present and not the default `electric-studio`.
+3. Content-keyword rules (`inferContentType` + `CONTENT_TYPE_MAP`), e.g. humanities / curation → `dark-botanical`.
+
+An explicit `design_mode` in the **current** `executor.js` JSON always wins.
 
 ### Dark
 
@@ -286,6 +294,7 @@ slide-forge/
 │   └── shared/                     # Theme-agnostic variants (stats, timeline, etc.)
 ├── examples/
 │   ├── test_article.md             # Sample article for testing
+│   ├── tencent_intro_light.md      # Long-form corp. intro sample (e.g. swiss-modern)
 │   ├── full_variant_test.md        # Full variant coverage test
 │   └── scenes_example.json         # Manual scenes.json reference
 ├── .env.example                    # Environment variable template
