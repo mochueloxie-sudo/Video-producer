@@ -296,18 +296,39 @@ async function generateHTMLPresentation(screenshotsDir, scenes, outPath) {
 
   .nav-btn {
     position: absolute; top: 50%; transform: translateY(-50%);
-    width: 56px; height: 56px; border-radius: 50%;
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.7); font-size: 24px;
+    width: 38px; height: 38px; border-radius: 50%;
+    /* 中性毛玻璃：浅色页不「一坨黑」，深色页靠亮边+字影仍可辨 */
+    background: rgba(96, 96, 104, 0.34);
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.3s;
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    opacity: 0.95; transition: opacity 0.2s, background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
     z-index: 10;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+      0 2px 12px rgba(0, 0, 0, 0.28);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 1px rgba(0, 0, 0, 0.4);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22));
   }
   .slide-container:hover .nav-btn { opacity: 1; }
-  .nav-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
-  .nav-prev { left: 24px; }
-  .nav-next { right: 24px; }
+  .nav-btn:hover {
+    background: rgba(110, 110, 120, 0.48);
+    border-color: rgba(255, 255, 255, 0.78);
+    color: #fff;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+      0 3px 14px rgba(0, 0, 0, 0.32);
+  }
+  @media (hover: none) {
+    .nav-btn { opacity: 1; }
+  }
+  .nav-prev { left: 18px; }
+  .nav-next { right: 18px; }
 
   .bottom-bar {
     position: absolute; bottom: 0; left: 0; right: 0;
@@ -315,9 +336,12 @@ async function generateHTMLPresentation(screenshotsDir, scenes, outPath) {
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 24px; z-index: 10;
-    opacity: 0; transition: opacity 0.3s;
+    opacity: 0.88; transition: opacity 0.25s;
   }
   .slide-container:hover .bottom-bar { opacity: 1; }
+  @media (hover: none) {
+    .bottom-bar { opacity: 1; }
+  }
 
   .page-info { color: rgba(255,255,255,0.6); font-size: 14px; }
   .slide-title { color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500; }
@@ -367,30 +391,50 @@ async function generateHTMLPresentation(screenshotsDir, scenes, outPath) {
   .drawer-close:hover { color: rgba(255,255,255,0.7); }
 
   .script-body {
-    flex: 1; overflow-y: auto; padding: 0 48px 20px;
+    flex: 1; min-height: 0; overflow-y: auto; padding: 0 48px 20px;
     font-size: 18px; line-height: 1.85; color: rgba(255,255,255,0.82);
     font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
     letter-spacing: 0.02em;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;
   }
+  .script-body.script-sparse {
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: stretch;
+  }
+  .script-body.script-sparse .script-page-label { margin-bottom: 12px; }
   .script-body::-webkit-scrollbar { width: 5px; }
   .script-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
   .script-body .script-page-label {
     font-size: 12px; color: rgba(100,160,255,0.7); font-weight: 600;
     letter-spacing: 0.1em; margin-bottom: 8px; text-transform: uppercase;
   }
+  .script-body .script-text {
+    white-space: pre-wrap; word-break: break-word;
+  }
 
+  /* 逐字稿：关闭面板时显示；打开面板后隐藏（用 × / Esc / S 关闭后再出现） */
   .script-toggle {
     position: absolute; bottom: 56px; right: 24px;
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.6); font-size: 13px; padding: 6px 14px;
+    visibility: visible;
+    background: rgba(20,20,24,0.55); border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.88); font-size: 13px; padding: 6px 14px;
     border-radius: 8px; cursor: pointer; z-index: 25;
-    opacity: 0; transition: opacity 0.3s;
+    opacity: 0.92; transition: opacity 0.25s, visibility 0.2s, background 0.2s;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
   }
-  .script-drawer.open ~ .script-toggle { bottom: auto; top: 8px; right: 80px; opacity: 1; }
   .slide-container:hover .script-toggle { opacity: 1; }
+  @media (hover: none) {
+    .script-toggle { opacity: 1; }
+  }
   .script-toggle:hover { background: rgba(255,255,255,0.16); color: #fff; }
-  .script-toggle.active { background: rgba(100,160,255,0.2); border-color: rgba(100,160,255,0.3); color: rgba(100,160,255,0.9); }
+  .script-toggle.active {
+    background: rgba(100,160,255,0.2); border-color: rgba(100,160,255,0.3); color: rgba(100,160,255,0.9);
+  }
+  .slide-container:has(.script-drawer.open) .script-toggle {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -403,7 +447,7 @@ async function generateHTMLPresentation(screenshotsDir, scenes, outPath) {
     <span class="page-info" id="pageInfo"></span>
     <span class="slide-title" id="slideTitle"></span>
   </div>
-  <button class="script-toggle" id="scriptBtn" onclick="toggleScript()">逐字稿</button>
+  <button type="button" class="script-toggle" id="scriptBtn" onclick="toggleScript()">逐字稿</button>
   <div class="script-drawer" id="drawer">
     <div class="drawer-handle" onclick="cycleHeight()">
       <span class="drawer-grip"></span>
@@ -441,11 +485,15 @@ function updateScript() {
   const s = meta[idx]?.script || '';
   const label = meta[idx]?.title || ('Slide ' + (idx + 1));
   const charCount = s.length;
-  scriptBody.innerHTML = '<div class="script-page-label">' + escH(label) + ' · ' + charCount + ' 字</div>' + escH(s);
+  const sparse = charCount < 220;
+  scriptBody.classList.toggle('script-sparse', sparse);
+  scriptBody.innerHTML = '<div class="script-page-label">' + escH(label) + ' · ' + charCount + ' 字</div>'
+    + '<div class="script-text">' + escH(s) + '</div>';
   drawerLabel.textContent = label + ' · 逐字稿';
   scriptBody.scrollTop = 0;
-  if (drawerOpen && charCount > 180 && heightIdx === 0) {
-    setHeight(1);
+  if (drawerOpen) {
+    if (sparse) setHeight(0);
+    else if (charCount > 180 && heightIdx === 0) setHeight(1);
   }
 }
 
@@ -455,7 +503,11 @@ function toggleScript() {
   drawerOpen = !drawerOpen;
   drawer.classList.toggle('open', drawerOpen);
   scriptBtn.classList.toggle('active', drawerOpen);
-  if (drawerOpen) setHeight(heightIdx);
+  if (drawerOpen) {
+    const n = (meta[idx]?.script || '').length;
+    if (n < 220) setHeight(0);
+    else setHeight(heightIdx);
+  }
 }
 function closeScript() {
   drawerOpen = false;
