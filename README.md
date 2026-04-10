@@ -3,6 +3,7 @@
 > 将任何文档在 10 分钟内转换为精致的 1920×1080 演示文稿 — 支持视频、PDF 或交互式 HTML。
 
 [English](README_en.md)
+[更新记录](CHANGELOG.md)
 [Node.js](https://nodejs.org/)
 [License: MIT](LICENSE)
 [Version](_meta.json)
@@ -297,6 +298,7 @@ slide-forge/
 │   ├── full_variant_test.md        # 全变体覆盖测试
 │   └── scenes_example.json         # 手动 scenes.json 参考
 ├── .env.example                    # 环境变量模板
+├── CHANGELOG.md                    # 版本与用户向变更记录
 └── package.json
 ```
 

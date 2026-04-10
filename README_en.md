@@ -1,6 +1,7 @@
 # SlideForge
 
 [中文](README.md)
+[Changelog](CHANGELOG.md)
 
 > Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML — in under 10 minutes.
 
@@ -298,6 +299,7 @@ slide-forge/
 │   ├── full_variant_test.md        # Full variant coverage test
 │   └── scenes_example.json         # Manual scenes.json reference
 ├── .env.example                    # Environment variable template
+├── CHANGELOG.md                    # Version history (user-facing)
 └── package.json
 ```
 
