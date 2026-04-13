@@ -1,287 +1,223 @@
----
+# SlideForge
 
-name: SlideForge
-description: >
-  把飞书文档、本地文件（.md/.txt）或网页一键转换为高品质演示内容。
-  支持视频/PDF/交互式HTML三种交付格式，13种设计主题、22种内容变体（含对照/流程/架构栈/漏斗等），
-  可选页内入场与 stagger 动效，8个独立Step自由组合。
-type: agent
-version: "3.1.1"
-metadata:
-  clawdbot:
-    emoji: "🎬"
-    os: ["linux", "darwin", "win32"]
-input:
-  type: object
-  properties:
-    command:
-      type: string
-      enum: ["step0", "step1", "step2", "step3", "step4", "step5", "step6", "step7", "all"]
-      description: 执行哪个步骤（可独立调用）
-    source:
-      type: string
-      description: 飞书文档 URL、本地文件路径（.md/.txt）或网页 URL（Step 0 使用）
-    scenes:
-      type: string
-      description: scenes.json 文件路径（Step 1-6 输入）
-    design_params:
-      type: string
-      description: design_params.json 文件路径（Step 3 / Step 4 输入）
-    design_mode:
-      type: string
-      description: 设计主题 id。留空则根据内容自动选择。与 designMode 等价。
-      enum:
-        - electric-studio
-        - bold-signal
-        - creative-voltage
-        - dark-botanical
-        - neon-cyber
-        - terminal-green
-        - deep-tech-keynote
-        - notebook-tabs
-        - paper-ink
-        - pastel-geometry
-        - split-pastel
-        - swiss-modern
-        - vintage-editorial
-    designMode:
-      type: string
-      description: 同 design_mode（executor 别名，驼峰）
-    format:
-      description: 交付格式（Step 6 / command all）。单字符串或字符串数组，多选时同时生成多种产物。默认 video。
-      default: "video"
-      oneOf:
-        - type: string
-          enum: ["video", "pdf", "html"]
-        - type: array
-          minItems: 1
-          items:
-            type: string
-            enum: ["video", "pdf", "html"]
-    channel:
-      type: string
-      description: 交付渠道。默认 local（打包到 output_dir）。
-      enum: ["local", "feishu"]
-      default: "local"
-    output_dir:
-      type: string
-      default: "./output"
-      description: 输出目录（所有 Step 共用）
-    projectDir:
-      type: string
-      description: 同 output_dir（executor 别名，驼峰）
-    html_dir:
-      type: string
-      description: HTML 目录（Step 4 截图输入）
-    screenshots_dir:
-      type: string
-      description: 截图目录（Step 6 视频/PDF 输入）
-    audio_dir:
-      type: string
-      description: 音频目录（Step 6 视频合成输入）
-    output:
-      type: string
-      description: 视频输出路径（Step 6 format=video）
-    video_path:
-      type: string
-      description: 本地视频文件路径（Step 7 channel=feishu 上传用）
-    doc_title:
-      type: string
-      description: 飞书文档标题（Step 7 channel=feishu）
-    folder_token:
-      type: string
-      description: 飞书目标文件夹 token（Step 7 channel=feishu）
-    source_url:
-      type: string
-      description: 原文链接（附在交付文件末尾，可选）
-    voice:
-      type: string
-      description: Edge TTS 语音名称（Step 5，默认 zh-CN-XiaoxiaoNeural）
-    language:
-      type: string
-      description: 内容语言（Step 0/5，默认 zh-CN）
-    page_animations:
-      type: boolean
-      default: true
-      description: 是否启用页内入场动效（Step 2 写入 design_params；Step 3 HTML 注入；Step 4 有动画时等待就绪再截图）。传 false 关闭。
-    page_animation_preset:
-      type: string
-      enum: ["none", "fade", "stagger"]
-      default: "stagger"
-      description: 页内动效预设。none=无；fade=整页淡入；stagger=块级交错（需 page_animations 非 false）。
-  required: ["command"]
-output:
-  type: object
-  properties:
-    success: {type: boolean}
-    step: {type: string}
-    outputs: {type: array, items: {type: string}}
-    message: {type: string}
-    metadata: {type: object}
-
-## executor: executor.js
-
-## Agent 触发后的交互（推荐）
-
-在调用本技能**之前**，Agent 宜与用户做简短确认，再把答案映射到 JSON 的 `format`、`channel` 等字段。**不要**在未确认时默认 `format: "video"`（耗时长、依赖 FFmpeg / TTS）。
-
-建议按顺序问询（用户已一次性说清时可合并为一条确认）：
-
-1. **内容来源** — 飞书文档链接、本地 `.md`/`.txt` 路径，或网页 URL？（对应 `source`）
-2. **交付格式** — 只要 **PDF**、只要 **HTML**、只要 **视频**，还是**多种都要**？（对应 `format`：`"pdf"` / `"html"` / `"video"` 或数组，如 `["pdf","html"]`）
-   - 若含 **video**：说明需要本机 **FFmpeg**、**edge-tts**（或降级 `say`），Step 5 会跑 TTS。
-3. **交付渠道** — 仅 **本地**（`output_dir` 产物），还是要 **发到飞书**？（对应 `channel`：`local` 默认 / `feishu`）
-   - 若选 **feishu**：需用户或环境已具备 **飞书应用凭证**（`.env` 中 `FEISHU_APP_ID` / `FEISHU_APP_SECRET`），并收集 **`doc_title`**、目标 **`folder_token`** 等；缺任一项则不要调用 `channel=feishu`，或先提示用户补全。
-4. **（可选）** — 是否指定 **设计主题** `design_mode`？输出目录 `output_dir`？是否关闭 **页内动效** `page_animations: false`？
-
-将用户选择写成单次 `command: "all"` 的 JSON（或分步 Step），再执行 `node executor.js` / 管道 / `request.json` 文件传参。
+从飞书文档 URL、本地 `.md`/`.txt` 或网页 URL 生成 **1920×1080** 演示（`video` / `pdf` / `html`），并附带大纲与逐字稿。仓库根目录执行 `node executor.js`，向 **stdin** 传入一行 JSON；无管道时可用 `node executor.js /path/to/request.json`。样张、token、各 Step 实现见 [CLAUDE.md](CLAUDE.md)。
 
 ---
 
-## 快速开始
+## 最小执行（command 为 all）
 
-### 一键生成（最常用）
+**入口**：`node executor.js`，stdin 一行 JSON（与 `request.json` 内容相同）。
+
+**与 LLM / 子进程**：`command: "all"` 在独立 Node 进程里**固定**跑 Step0 → Step1，经 HTTP 调用**环境变量里配置好的 LLM**，与当前对话里的大模型**不是同一条调用链**。见 `**.env.example`** 与下文「厂商与变量名」。若已由对话侧生成合规 `**scenes.json**`（可参考 `**examples/scenes_example.json**`），可从 `**step2**` 起依次调用至 `**step7**`；当前实现**不会**让 `all` 跳过 Step0/1。
+
+### Agent 读到 LLM 依赖时（建议）
+
+- **先问用户**：运行 `executor.js` 的机器上是否已配置 `**.env`**，且接受跑 **Step0/1**（从零 `source` 时必跑）。
+- **话术顺序**：**建议优先准备 MiniMax**（填 `**MINIMAX_*`**，与仓库默认、官方文档一致）。**若没有 MiniMax key**，再让用户填 `**LLM_*`**（任意 OpenAI Chat Completions 兼容端点的 URL / key / model）。
+- **若 Step0/1 报错**：看 stderr；核对 `**MINIMAX_*` 或 `LLM_*`**、网络、模型名、Base URL（通常需含 `/v1`）。仍失败可走 `**scenes.json` + step2**。
+
+### 厂商与变量名（重要）
+
+- **代码读取顺序**：`**MINIMAX_*` 优先**；未设置时再读 `**LLM_*`**（便于「建议 MiniMax、没有再用别家」）。二者同时填写时以 `**MINIMAX_***` 为准。实现见 `**steps/utils/minimax_utils.js**`。
+- **协议**：OpenAI **Chat Completions** 兼容（`POST {BASE}/chat/completions`）。无 MiniMax 时，把兼容网关的 **URL（含 `/v1`）/ key / model** 写入 `**LLM_*`**。
+- **未逐一认证**所有非 MiniMax 网关；若响应格式不一致，需改代码或走 `scenes.json`。
+
+
+| 字段                      | 在 `all` 中   | 说明                                                                |
+| ----------------------- | ----------- | ----------------------------------------------------------------- |
+| `command`               | **必填**      | 全流程用 `"all"`                                                      |
+| `source`                | **通常必填**    | 飞书 URL、本地路径、或网页 URL                                               |
+| `format`                | **强烈建议显式写** | `"pdf"` / `"html"` / `"video"` 或数组。默认偏 `video`：**未与用户确认前不要省略成视频** |
+| `output_dir`            | 可选          | 默认 `./output`                                                     |
+| `channel`               | 可选          | `local`（默认）或 `feishu`                                             |
+| `design_mode`           | 可选          | 合法值为下文 **13 主题 id**；省略则 Step0 推荐 + Step2 规则                       |
+| `page_animations`       | 可选          | 默认 `true`；`false` 关闭页内入场动效                                        |
+| `page_animation_preset` | 可选          | `none`、`fade`、`stagger`（默认 `stagger`）                             |
+
+
+**别名**：`designMode` 同 `design_mode`，`projectDir` 同 `output_dir`。
+
+### 常用一行命令
 
 ```bash
 echo '{"command":"all","source":"./article.md","format":"video","output_dir":"./output"}' | node executor.js
 ```
 
-### 生成 PDF 演示
-
 ```bash
 echo '{"command":"all","source":"./article.md","format":"pdf","output_dir":"./output"}' | node executor.js
 ```
-
-### 生成交互式 HTML 幻灯片
 
 ```bash
 echo '{"command":"all","source":"./article.md","format":"html","output_dir":"./output"}' | node executor.js
 ```
 
-### OpenClaw / 受限 exec（无管道）
-
-部分环境会拦截 `echo '…' \| node executor.js`。可把请求 JSON 写入文件后：
-
 ```bash
 node executor.js ./request.json
 ```
 
-（`request.json` 与 stdin 传入的对象格式相同。）
+---
+
+## 跑前与用户确认（推荐）
+
+调用前宜与用户确认再写入 JSON。**不要**在未确认时默认 `format: "video"`（耗时长，依赖 FFmpeg、TTS）。
+
+1. **内容来源** — 飞书、本地 `.md`/`.txt`、网页 URL？（`source`）
+2. **交付格式** — PDF / HTML / 视频 / 多选？（`format`）；含 **video** 需本机 **FFmpeg**、**edge-tts**（或 macOS `**say`**）
+3. **交付渠道** — 本地或飞书？（`channel`）；**feishu** 需 `.env` 凭证及 `**doc_title`**、`**folder_token**` 等
+4. **（可选）** — `**design_mode`**、`**output_dir**`、`**page_animations: false**`？
+5. **从零生成** — 是否已按 `**.env.example`** 配好 Step0/1（**建议 `MINIMAX_*`**；没有则用 `**LLM_***`）及飞书读文档所需项？
+6. **依赖** — 对照下文「依赖准备清单」
 
 ---
 
-## Pipeline 总览
+## 依赖不足时会发生什么（实现现状）
 
-| Step | 名称       | 核心工具                                                       | 输入                     | 输出                         |
-| ---- | -------- | ---------------------------------------------------------- | ---------------------- | -------------------------- |
-| 0    | 内容分析     | MiniMax LLM                                                | source URL/文件          | `scenes.json`              |
-| 1    | 逐字稿      | MiniMax LLM                                                | `scenes.json`          | `scenes[].script`          |
-| 2    | 设计参数     | 本地 preset +（可选）入参 `design_mode` / Step0 `recommended` / 规则 | `scenes.json`          | `design_params.json`       |
-| 3    | HTML 渲染  | html_generator                                             | scenes + design_params | `html/page_XXX.html`       |
-| 4    | 截图       | Puppeteer                                                  | html/ 目录               | `screenshots/page_XXX.png` |
-| 5    | TTS 合成   | edge-tts / say                                             | scenes (script)        | `audio/page_XXX.mp3`       |
-| 6    | **交付格式** | FFmpeg / PDF / HTML                                        | screenshots + audio    | 视频/PDF/HTML + 大纲 + 逐字稿     |
-| 7    | **交付渠道** | 本地/飞书                                                      | Step 6 产出              | 打包文件 / 飞书文档                |
+- **无**统一预检；缺依赖在对应 Step 失败（非 0 退出、stderr 有说明）。**首次**跑 `executor.js` 前应对照「依赖准备清单」。
+- **常见失败**：Step0/1 未设 `**MINIMAX_API_KEY` 或 `LLM_API_KEY`**（及对应 BASE/Model）或 URL/模型不兼容；`format` 含 **video** 时 Step5 无 edge-tts 且无 macOS `say` → `未找到可用的 TTS 工具…`；Step6 缺 **ffmpeg/ffprobe** → `Required tools (ffmpeg/ffprobe) not available`；飞书缺凭证或 lark-cli → Step0 读文档或 Step7 失败。
+
+---
+
+## 依赖准备清单（建议在跑命令前完成）
+
+
+| 场景                           | 用户需提前具备                                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `command: "all"` 且带 `source` | `**.env`**：**建议 `MINIMAX_*`**；若无 MiniMax 再填 `**LLM_***`（见 `**.env.example**`）；`source` 为飞书时还要飞书应用凭证   |
+| `format` 含 `video`           | `**ffmpeg` + `ffprobe**`；TTS：`**pip install edge-tts**`（或 `python3 -m edge_tts`），或 macOS `**say**` 降级 |
+| 仅 `pdf` 和/或 `html`           | **Node** + `**npm install`**（含 Puppeteer）；Step4 需能启动浏览器                                               |
+| `channel: "feishu"`          | `**.env.example**` 飞书项、**lark-cli**、JSON 里 `**doc_title` / `folder_token`** 等                         |
+
+
+### 可选自检命令
+
+```bash
+node -v
+ffmpeg -version && ffprobe -version
+(command -v edge-tts >/dev/null 2>&1 && edge-tts --version) || python3 -m edge_tts --version
+```
+
+macOS 可补充：`which say`。
 
 ---
 
 ## 交付格式（Step 6）
 
 
-| 格式      | 产出文件                           | 依赖                            |
-| ------- | ------------------------------ | ----------------------------- |
-| `video` | `presentation.mp4`             | FFmpeg（`brew install ffmpeg`） |
-| `pdf`   | `presentation.pdf`             | 无额外依赖                         |
-| `html`  | `presentation.html`（主入口：iframe 单页，hover + 入场动画）+ `presentation_static.html`（PNG 轮播）+ 同目录 `page_*.html` | 无额外依赖 |
+| `format` | 主要产出                                                                 | 依赖     |
+| -------- | -------------------------------------------------------------------- | ------ |
+| `video`  | `presentation.mp4`                                                   | FFmpeg |
+| `pdf`    | `presentation.pdf`                                                   | 无额外依赖  |
+| `html`   | `presentation.html` + `presentation_static.html` + 同目录 `page_*.html` | 无额外依赖  |
 
-**`format=html` 两种入口（Agent 交付前必读）**
 
-- **`presentation.html`**：用 **iframe** 加载**同目录**下 **`page_001.html`…**。页内 **DOM、hover、CSS 入场动画** 仅在这一路径存在。交给用户时必须保留 **整个 `output_dir`（至少 `presentation.html` + 全部 `page_*.html`）**，**不要**只上传/分享一个「汇总 HTML」就当作交互版。
-- **`presentation_static.html`**（以及结构相同的「单文件内嵌多页 PNG base64」轮播）：只是 **截图翻页**（+ 壳上键盘/逐字稿等），**没有**各页模板内部的交互。适合单文件分享、画面与 PDF 一致；**不要**把它命名或说明成与 `presentation.html` 等价的「交互式幻灯片」。
+### format=html：两入口对照（交付前必读）
 
-**无论选择哪种格式，都自动附带：**
 
-- `outline.md` — 内容大纲（标题、页码、关键词）
-- `script.md` — 完整逐字稿（按页分段）
+| 文件                             | 单文件能独立打开？       | 与谁同目录                                            |
+| ------------------------------ | --------------- | ------------------------------------------------ |
+| `**presentation.html**`        | **否**（iframe 壳） | **必须**与全部 `page_001.html` … `page_NNN.html` 一并分发 |
+| `**presentation_static.html`** | **是**（内嵌 PNG）   | 无                                                |
+
+
+- 交 `**presentation.html`**：至少该文件 + 全部 `**page_*.html**`（建议整个 `output_dir`）。
+- 单文件分享：用 `**presentation_static.html**` 或 **PDF**，并说明为静帧轮播。
+
+目录里通常还有 `**outline.md`**、`**script.md**`。
+
+---
+
+## Pipeline 总览
+
+
+| Step | 名称   | 输入 → 输出（摘要）                                             |
+| ---- | ---- | ------------------------------------------------------- |
+| 0    | 内容分析 | `source` → `scenes.json`                                |
+| 1    | 逐字稿  | `scenes.json` → 写入 `script`                             |
+| 2    | 设计参数 | `scenes.json` + 可选 `design_mode` → `design_params.json` |
+| 3    | HTML | scenes + `design_params` → `html/page_*.html`           |
+| 4    | 截图   | `html_dir` → `screenshots/page_*.png`                   |
+| 5    | TTS  | scenes（script）→ `audio/page_*.mp3`                      |
+| 6    | 交付格式 | 截图 + 音频等 → video/pdf/html + 大纲 + 逐字稿                    |
+| 7    | 交付渠道 | Step6 产出 → 本地或飞书                                        |
+
 
 ---
 
 ## 交付渠道（Step 7）
 
 
-| 渠道          | 行为                          | 前置条件                                             |
-| ----------- | --------------------------- | ------------------------------------------------ |
-| `local`（默认） | 所有产出文件打包在 output_dir，输出文件清单 | 无                                                |
-| `feishu`    | 创建飞书文档 + 嵌入视频/附件 + 写入大纲和逐字稿 | `FEISHU_APP_ID` + `FEISHU_APP_SECRET` + lark-cli |
+| `channel`   | 行为               | 前置                                             |
+| ----------- | ---------------- | ---------------------------------------------- |
+| `local`（默认） | 产物在 `output_dir` | 无                                              |
+| `feishu`    | 飞书文档 + 附件等       | `FEISHU_APP_ID`、`FEISHU_APP_SECRET`、lark-cli 等 |
+
+
+---
+
+## 分步调用时的额外字段
+
+`command` 为 `step0`…`step7` 时按需附加（路径均为字符串）：
+
+
+| 字段                                      | 典型用于                      |
+| --------------------------------------- | ------------------------- |
+| `scenes`                                | step1–6                   |
+| `design_params`                         | step3、step4               |
+| `html_dir`                              | step4                     |
+| `screenshots_dir`、`audio_dir`           | step6                     |
+| `output`                                | step6 自定义视频路径（可选）         |
+| `video_path`、`doc_title`、`folder_token` | step7 `feishu`            |
+| `voice`、`language`                      | step0/5（见 `.env.example`） |
+| `source_url`                            | 可选                        |
 
 
 ---
 
 ## 13 种设计主题
 
-### 深色主题
+### 深色
 
 
-| 主题                  | 背景色      | 强调色     | 适用场景      |
-| ------------------- | -------- | ------- | --------- |
-| `electric-studio`   | 深蓝黑      | 蓝紫 + 天蓝 | 通用兜底      |
-| `bold-signal`       | 深灰       | 橙红      | 商业/品牌/营销  |
-| `creative-voltage`  | 深蓝       | 电蓝      | 创意/设计/艺术  |
-| `dark-botanical`    | 深棕       | 暖金      | 人文/教育/社科  |
-| `neon-cyber`        | 极深黑      | 霓虹青 + 紫 | 科幻/数字/AI  |
-| `terminal-green`    | GitHub暗色 | 绿 + 蓝   | 技术/代码/API |
-| `deep-tech-keynote` | 深蓝       | 天蓝 + 蓝紫 | 深度技术演讲    |
+| `design_mode`       | 气质 / 场景（摘要）  |
+| ------------------- | ------------ |
+| `electric-studio`   | 深蓝黑，通用兜底     |
+| `bold-signal`       | 商业 / 品牌 / 营销 |
+| `creative-voltage`  | 创意 / 设计      |
+| `dark-botanical`    | 人文 / 教育      |
+| `neon-cyber`        | 科幻 / 数字 / AI |
+| `terminal-green`    | 技术 / 代码      |
+| `deep-tech-keynote` | 深度技术演讲       |
 
 
-### 浅色主题
+### 浅色
 
 
-| 主题                  | 背景色 | 强调色    | 适用场景     |
-| ------------------- | --- | ------ | -------- |
-| `swiss-modern`      | 白底  | 纯黑     | 极简/瑞士风   |
-| `paper-ink`         | 米白  | 红黑     | 印刷/出版/编辑 |
-| `vintage-editorial` | 暖白  | 棕金     | 复古/文艺    |
-| `notebook-tabs`     | 深暖灰 | 薄荷绿    | 笔记/手账    |
-| `pastel-geometry`   | 粉白  | 粉+几何色块 | 轻快/活泼    |
-| `split-pastel`      | 粉白  | 柔粉+蓝   | 温柔/女性化   |
+| `design_mode`       | 气质 / 场景（摘要） |
+| ------------------- | ----------- |
+| `swiss-modern`      | 极简 / 瑞士     |
+| `paper-ink`         | 印刷 / 编辑     |
+| `vintage-editorial` | 复古 / 文艺     |
+| `notebook-tabs`     | 笔记 / 手账     |
+| `pastel-geometry`   | 轻快 / 活泼     |
+| `split-pastel`      | 柔和 / 温柔     |
 
 
-**未指定 `design_mode` 时**（JSON 里不写该字段）：先用 `project.json` 里 Step0 写入的 `recommended_design_mode`，再不行则用 Step2 内容关键词规则。  
-**指定 `design_mode` 时**：必须为本技能枚举中的 **合法 id 字符串**（如 `terminal-green`），流水线会固定使用该主题。
+**规则**：`design_mode` 须为表中 id；用户要「自动」则**不传**该字段。未传时：Step0 推荐 id → Step2 关键词规则。
 
----
-
-## Agent：用户模糊描述 → `design_mode`（无需改代码）
-
-当用户在对话里用自然语言说「想要什么样的感觉」时，**由 Agent 在本技能内查表、选唯一主题 id**，并在调用 `executor.js` 的 JSON 里写入 `design_mode`。底层只认 id，不理解自然语言。
-
-### 操作原则
-
-1. **先读上表「13 种设计主题」**：每个 `design_mode` 一行，含深浅、气质、场景；从中选 **最贴近用户原话 + 文档类型** 的一条。
-2. **用户明确说「自动 / 你看着办 / 跟内容走」**：**不要**传 `design_mode`，交给推荐与规则。
-3. **用户只说「深色」或「浅色」**：在对应池里再按内容二选一（技术→`terminal-green`，商务→`bold-signal`，清新活泼→浅色里选 `pastel-geometry` 等）。
-4. **用户描述与内容冲突**（例如技术文档但用户要「粉嫩」）：以用户风格为准并简短说明取舍；极端不合理时可建议确认仍坚持再写入。
-
-### 口语 → 候选主题（映射参考，非穷尽）
+### 口语 → 候选 id（参考）
 
 
-| 用户常说法                | 可考虑的 `design_mode`（按语境择一）                                           |
-| -------------------- | ------------------------------------------------------------------- |
-| 深色、暗色、夜里用、酷、赛博、科技感强  | `neon-cyber`、`electric-studio`、`deep-tech-keynote`、`terminal-green` |
-| 高级、稳重、发布会、Keynote、大场 | `deep-tech-keynote`、`electric-studio`、`bold-signal`                 |
-| 商务、增长、营销、亮眼          | `bold-signal`、`electric-studio`                                     |
-| 清新、活泼、轻松、年轻、马卡龙      | `pastel-geometry`、`split-pastel`                                    |
-| 极简、干净、瑞士、专业白纸黑字      | `swiss-modern`、`paper-ink`                                          |
-| 文艺、复古、纸质感、编辑部        | `vintage-editorial`、`paper-ink`                                     |
-| 笔记、手账、学习记录           | `notebook-tabs`                                                     |
-| 人文、博物馆、疗愈、暖金暗底       | `dark-botanical`                                                    |
-| 代码、开发者、终端、GitHub 感   | `terminal-green`                                                    |
-| 创意、设计提案、电量感          | `creative-voltage`                                                  |
-| 浅色、明亮、汇报给老板但不花哨      | `swiss-modern`、`paper-ink`                                          |
-| 女性向、柔和、温柔            | `split-pastel`                                                      |
+| 用户说法（示例）  | 可考虑                                                                 |
+| --------- | ------------------------------------------------------------------- |
+| 深色、赛博、科技感 | `neon-cyber`、`electric-studio`、`deep-tech-keynote`、`terminal-green` |
+| 发布会、大场、稳重 | `deep-tech-keynote`、`electric-studio`、`bold-signal`                 |
+| 商务、营销     | `bold-signal`、`electric-studio`                                     |
+| 清新、马卡龙    | `pastel-geometry`、`split-pastel`                                    |
+| 极简、白纸黑字   | `swiss-modern`、`paper-ink`                                          |
+| 文艺、纸感     | `vintage-editorial`、`paper-ink`                                     |
+| 笔记、手账     | `notebook-tabs`                                                     |
+| 代码、终端感    | `terminal-green`                                                    |
 
-
-### 调用示例（Agent 填好 `design_mode` 后）
 
 ```bash
 echo '{"command":"all","source":"./article.md","format":"html","output_dir":"./output","design_mode":"deep-tech-keynote"}' | node executor.js
@@ -289,52 +225,24 @@ echo '{"command":"all","source":"./article.md","format":"html","output_dir":"./o
 
 ---
 
-## 环境变量
+## 运行环境（不在 JSON 里）
 
-```ini
-# 必填：MiniMax LLM（Step 0 内容分析 + Step 1 逐字稿）
-MINIMAX_API_KEY=sk-...
-MINIMAX_MODEL=MiniMax-M2.7-highspeed
-MINIMAX_BASE_URL=https://api.minimax.chat/v1
+由 `**.env**` / 进程环境提供。Step0/1：`**MINIMAX_*` 优先**，否则 `**LLM_*`**；飞书、TTS 等见 `**.env.example**`。
 
-# format=video 时必填
-# brew install ffmpeg
 
-# channel=feishu 时必填
-FEISHU_APP_ID=cli_...
-FEISHU_APP_SECRET=...
+| 阶段               | 需要什么             | 说明                                                            |
+| ---------------- | ---------------- | ------------------------------------------------------------- |
+| Step0 / 1        | LLM API          | **建议 `MINIMAX_*`**；无则 `**LLM_***`（OpenAI Chat Completions 兼容） |
+| `format=video`   | FFmpeg           | README / 系统包管理器                                               |
+| `channel=feishu` | 飞书凭证             | `**.env.example**`、Step7                                      |
+| Step5            | edge-tts 或 `say` | `**.env.example**`                                            |
 
-# TTS（Step 5）
-# pip install edge-tts
-```
 
 ---
 
-## 内容变体（20+种）
+## 内容变体（摘要）
 
-Step 0 LLM 根据内容自动选择最佳变体：
-
-
-| 变体                     | 用途       | 每页信息容量              |
-| ---------------------- | -------- | ------------------- |
-| `panel` + grid-3/cards | 要点列表     | 3-6 × (标题+正文描述)     |
-| `card_grid`            | 卡片网格     | 3-6 × (图标/编号+标题+正文) |
-| `icon_grid`            | 图标矩阵     | 4-9 × (emoji+标签+描述) |
-| `stats_grid`           | 数据指标     | 2-4 × (数字+标签+说明)    |
-| `timeline`             | 时间线/流程   | 3-5 × (步骤标题+描述)     |
-| `two_col`              | 双栏对比     | 左栏段落 + 右栏要点         |
-| `number`               | 大数字      | 1个核心指标              |
-| `quote`                | 引言       | 引语+来源               |
-| `text`                 | 纯文本      | 段落正文                |
-| `code`                 | 代码展示     | 代码块+说明              |
-| `table`                | 表格       | 多行多列数据              |
-| `chart`                | 图表       | CSS柱状图              |
-| `nav_bar`              | 导航页      | 章节切换                |
-| `panel_stat`           | 混合：列表+数据 | 要点+1个大指标            |
-| `number_bullets`       | 混合：数字+说明 | 大数字+编号条目            |
-| `quote_context`        | 混合：引言+背景 | 引语+归因+上下文           |
-| `text_icons`           | 混合：文本+图标 | 段落+图标网格             |
-
+Step0 为每页选 `content_variant`（如 `panel`、`card_grid`、`timeline` 等），约 **22** 种。完整列表与推断规则 → [CLAUDE.md](CLAUDE.md)「样张系统」「step2_design.js 核心逻辑」。
 
 ---
 
@@ -343,37 +251,24 @@ Step 0 LLM 根据内容自动选择最佳变体：
 ```bash
 P=./project
 
-# Step 0: 分析内容
 echo '{"command":"step0","source":"./article.md","output_dir":"'"$P"'"}' | node executor.js
-
-# Step 1: 生成逐字稿
 echo '{"command":"step1","scenes":"'"$P"'/scenes.json","output_dir":"'"$P"'"}' | node executor.js
-
-# Step 2: 设计参数（可指定主题或自动）
 echo '{"command":"step2","scenes":"'"$P"'/scenes.json","output_dir":"'"$P"'","design_mode":"terminal-green"}' | node executor.js
-
-# Step 3: 渲染 HTML
 echo '{"command":"step3","scenes":"'"$P"'/scenes.json","design_params":"'"$P"'/design_params.json","output_dir":"'"$P"'/html"}' | node executor.js
-
-# Step 4: 截图
 echo '{"command":"step4","html_dir":"'"$P"'/html","output_dir":"'"$P"'/screenshots"}' | node executor.js
-
-# Step 5: TTS
 echo '{"command":"step5","scenes":"'"$P"'/scenes.json","output_dir":"'"$P"'/audio"}' | node executor.js
-
-# Step 6: 交付格式（视频+PDF+HTML 三种都要）
 echo '{"command":"step6","format":["video","pdf","html"],"scenes":"'"$P"'/scenes.json","screenshots_dir":"'"$P"'/screenshots","audio_dir":"'"$P"'/audio","output_dir":"'"$P"'"}' | node executor.js
-
-# Step 7: 交付渠道（本地打包）
 echo '{"command":"step7","channel":"local","output_dir":"'"$P"'"}' | node executor.js
 ```
 
 ---
 
-## 开发规范
+## 维护者与样张
 
-- **样张 > 代码**：样式决策以 `samples/` HTML 为准
-- **固定像素**：样张用 px（截图 1920×1080）
-- **Generator 职责**：读取样张 → 替换 token → 写出
-- **Token 命名**：`{{NAME}}` 全大写，repeat marker 无下标
+改样张、加 token、调 LLM prompt → [CLAUDE.md](CLAUDE.md)。原则：**样张 > 代码**，画布 **1920×1080**，token `**{{NAME}}` 全大写**。
 
+---
+
+## 附录：_meta.json
+
+与 npm 包同发的 `**_meta.json`** 供宿主做类型发现；执行语义以 `**executor.js**` 与本文为准。

@@ -1,6 +1,6 @@
 {
   "name": "slide-forge",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "把飞书文档、本地文件（.md/.txt）或网页一键转换为高品质演示内容。支持视频/PDF/交互式HTML三种交付格式，13种设计主题、22种内容变体（含对照/流程/架构栈/漏斗等），可选页内入场与 stagger 动效，8个独立Step自由组合。",
   "type": "agent",
   "metadata": {

@@ -32,6 +32,7 @@ test_themes/
 test_e2e/
 test_tencent_html/
 tencent_html_demo/
+verify_notebook_shell/
 debug_html/
 preview/
 preview_*.html

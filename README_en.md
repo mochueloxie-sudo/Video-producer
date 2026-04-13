@@ -2,7 +2,8 @@
 
 [中文](README.md)
 [Changelog](CHANGELOG.md)
-[Agent skill: SKILL.md](SKILL.md)
+[SKILL.md (execution notes)](SKILL.md)
+[Developer guide: CLAUDE.md](CLAUDE.md)
 
 > Turn any document into a polished 1920×1080 presentation — video, PDF, or interactive HTML — in under 10 minutes.
 
@@ -10,11 +11,21 @@
 [License: MIT](LICENSE)
 [Version](_meta.json)
 
-**This repo is primarily built for AI agents**: a standard skill file plus a JSON manifest let **Cursor, Codex, OpenClaw / Clawdbot**, and similar run the same `executor.js` pipeline (stdin JSON → stdout results) in a sandbox or locally. Human developers can also run `node executor.js` directly.
+**What it does**: Feishu / Markdown / URL → **1920×1080** decks (video, PDF, interactive HTML). Entrypoint is `node executor.js` with one JSON object on stdin. **Cursor, Codex, OpenClaw**, and similar clients can register this repo per their own skill/tool rules—**behavior and fields are documented in [SKILL.md](SKILL.md)** (host metadata in `_meta.json`).
 
-Feed in a Feishu doc, Markdown file, or any URL. The pipeline analyses your content with MiniMax LLM, picks one of **13 design themes**, renders pixel-perfect HTML slides, and packages the result in your chosen format — all fully automatic.
+For greenfield runs, Step0/1 call an **LLM configured via environment variables** (see **`.env.example`**), pick one of **13 design themes**, render HTML, then package per `format`.
 
-**[View demo output →](examples/demo-output/)** Open `presentation.html` (iframe slides: hover + entrance animations). For PNG-only carousel matching PDF frames, use `presentation_static.html`.
+**[View demo output →](examples/demo-output/)** Open `presentation.html` (iframe shell + co-located `page_*.html` for hover + entrance motion; **do not ship a single HTML alone**). For a **single-file** PNG flipbook aligned with PDF, use `presentation_static.html`.
+
+## Documentation split
+
+| Audience | File |
+| --- | --- |
+| **Usage & execution** | [SKILL.md](SKILL.md) — `command`, inputs, pipeline, deliverables, pre-run checks, **dependency list**, `presentation.html` / `presentation_static.html`, Feishu, step examples |
+| **Development & debugging** | [CLAUDE.md](CLAUDE.md) — samples & tokens, `html_generator` / Step2, Roadmap, Step0/1 LLM stack (`minimax_utils`, …) |
+
+
+This README stays high-level; **full variant fields and implementation detail** live in `CLAUDE.md`.
 
 ## Features
 
@@ -24,12 +35,12 @@ Feed in a Feishu doc, Markdown file, or any URL. The pipeline analyses your cont
 - **22 style variants** — narrative, data, flow, compare, architecture/funnel, cards, code, and hybrid layouts—unified look per theme (see **Style variants**)
 - **Layout hints** — many variants offer alternate compositions (dense grids, cards, wide left/right, swimlanes, …) without changing the base style
 - **Adaptive typography** — font sizes, grid columns, and density classes adjust to content length automatically
-- **In-slide motion (HTML / screenshots)** — `design_params.page_animations` and `page_animation_preset` (`none` \| `fade` \| `stagger`); interactive `presentation.html` replays entrance motion on page change; `presentation_static.html` is PNG-only frames aligned with PDF
+- **In-slide motion (HTML / screenshots)** — `design_params.page_animations` and `page_animation_preset` (`none` / `fade` / `stagger`); interactive `presentation.html` replays entrance motion on page change; `presentation_static.html` is PNG-only frames aligned with PDF
 - **8 independent steps** — run the full pipeline or any step in isolation; all intermediate artifacts are persisted to disk
 - **Outline + script** — every export includes `outline.md` and `script.md`
-- **Agent-ready** — `SKILL.md` + `_meta.json` ship with the npm package (see **Agent setup (required)** below)
+- **Shipped docs** — `SKILL.md`, `CLAUDE.md`, and `_meta.json` ship with the npm package (see **Documentation split** and **Execution & setup** below)
 
----
+* * *
 
 ## Design themes
 
@@ -37,9 +48,10 @@ Each theme is a **complete visual system**: typography, palette, panel treatment
 
 The repo ships **13** finished themes (7 dark / 6 light), all wired to the **22 style variants** below—switching themes changes the “film grade and art direction” while timelines, funnels, compares, stacks, and the rest stay available.
 
-Set `design_mode` in JSON to **pin** a theme id; omit it for automatic selection (priority and rules: **Agent setup → How `design_mode` is resolved** below).
+Set `design_mode` in JSON to **pin** a theme id; omit it for automatic selection (priority and rules: **Execution & setup → How `design_mode` is resolved** below).
 
 ### Dark
+
 
 | Theme               | Accent                 | Best for                   |
 | ------------------- | ---------------------- | -------------------------- |
@@ -51,7 +63,9 @@ Set `design_mode` in JSON to **pin** a theme id; omit it for automatic selection
 | `terminal-green`    | GitHub green + blue    | Tech docs, APIs            |
 | `deep-tech-keynote` | Sky blue + blue-purple | Keynote talks              |
 
+
 ### Light
+
 
 | Theme               | Accent            | Best for              |
 | ------------------- | ----------------- | --------------------- |
@@ -62,7 +76,8 @@ Set `design_mode` in JSON to **pin** a theme id; omit it for automatic selection
 | `pastel-geometry`   | Pastel + geometry | Playful, casual       |
 | `split-pastel`      | Soft pink + blue  | Gentle, feminine      |
 
----
+
+* * *
 
 ## Style variants
 
@@ -73,44 +88,45 @@ Set `design_mode` in JSON to **pin** a theme id; omit it for automatic selection
 - **Flow & structure** — timelines, stage rails and swimlanes, layered architecture stacks, conversion funnels, side-by-side contrast (e.g. before/after).
 - **Showcase & assets** — icon/emoji grids, card walls, code blocks, section nav bars, text + icon mixes.
 
-Many variants also support **alternate compositions** (multi-column grids, card layouts, asymmetric columns, swimlanes, …) via `layout_hint`—**change layout without changing the base variant**. Field names, allowed values, and machine-readable variant ids are in **`SKILL.md`**; how they are inferred is under **Agent setup → How variants and layout hints are chosen** below.
+Many variants also support **alternate compositions** (multi-column grids, card layouts, asymmetric columns, swimlanes, …) via `layout_hint`—**change layout without changing the base variant**. Common variant ids and usage are in `SKILL.md`; **full fields and inference rules** are in `CLAUDE.md` (“样张系统”, “step2_design.js 核心逻辑”). The subsection **How variants and layout hints are chosen** below is an execution-order summary.
 
----
+* * *
 
-## Agent setup (required)
+## Execution & setup
 
-For **Cursor, Codex, OpenClaw / Clawdbot**, and similar: after cloning or installing the package, **read and register `SKILL.md`** (full schema and examples align with `_meta.json`).
+After clone or install: **how to run and which JSON fields to send** are in **[SKILL.md](SKILL.md)**; **[_meta.json](_meta.json)** ships with the package for host discovery and machine validation. Use **[CLAUDE.md](CLAUDE.md)** when changing templates or debugging.
 
 | File | Role |
-|------|------|
-| **`SKILL.md`** | **Required skill bundle**: YAML front matter (`type: agent`, `input`/`output` schema, **includes all 13 theme ids**) plus step-by-step CLI examples; register it with your platform’s Skills / Plugins rules. |
-| **`_meta.json`** | Lightweight manifest (version, `command` enum, `executor` path) for discovery and tooling. |
-| **`executor.js`** | Single entrypoint: `echo '<json>' \| node executor.js` — matches the examples in `SKILL.md`. |
+| --- | --- |
+| **SKILL.md** | **Execution notes**: `command`, inputs, pipeline, deliverables, pre-run checklist, dependency list, all 13 theme ids, step examples; **`presentation.html` must ship with every `page_*.html` in the same folder** |
+| **CLAUDE.md** | In-repo development: samples & tokens, `html_generator`, Roadmap, Step0/1 and `steps/utils/minimax_utils.js`, etc. |
+| **_meta.json** | Host side: `type: agent`, `executor`, machine `input`/`output` for OpenClaw, npm, CI, etc. |
+| **executor.js** | Single entrypoint: one JSON object on `stdin` → `node executor.js` (examples in SKILL.md) |
 
-**`npm pack` / `npm publish` tarballs include `SKILL.md` and `_meta.json`** alongside `steps/`, `samples/`, and other runtime files—no separate skill copy step.
+`npm pack` / `npm publish` tarballs include **SKILL.md**, **CLAUDE.md**, and **_meta.json** alongside `steps/`, `samples/`, and other runtime files.
 
-### Ask the user before running (recommended)
+### Before the first run (recommended)
 
-Before invoking `executor.js` on the user’s behalf, the agent should **confirm a few choices** and map them to JSON fields such as `format`, `channel`, and `source`. **Do not** silently default to `format: "video"`—it is the slowest path and requires FFmpeg and TTS.
+Confirm `format`, `channel`, and `source` before invoking `executor.js`. **Do not** silently default to `format: "video"` (slowest path; needs FFmpeg and TTS).
 
-Suggested order (merge into one confirmation if the user already stated everything):
+1. **Source** — Feishu URL, local `.md`/`.txt`, or web URL? (`source`)
+2. **Formats** — PDF / HTML / video / multiple? (`format`); if **video**, need **FFmpeg**, **edge-tts** (or macOS **`say`**)
+3. **Channel** — local `output_dir` or **Feishu**? (`channel`); **feishu** needs `.env` credentials plus **`doc_title`**, **`folder_token`**, etc.
+4. **(Optional)** — **`design_mode`**, **`output_dir`**, **`page_animations: false`**?
 
-1. **Source** — Feishu doc URL, local `.md`/`.txt` path, or web page URL? (`source`)
-2. **Output formats** — PDF only, HTML only, video only, or **multiple**? (`format` as a string or array, e.g. `["pdf","html"]`)  
-   - If **video** is included, **FFmpeg** and **edge-tts** (or macOS `say` fallback) are required; Step 5 runs TTS.
-3. **Delivery channel** — **Local** artifacts under `output_dir`, or **publish to Feishu**? (`channel`: `local` default / `feishu`)  
-   - For **feishu**, Feishu app credentials in `.env` are required, plus values such as **`doc_title`** and **`folder_token`**; if anything is missing, do not set `channel: feishu` until the user supplies them.
-4. **(Optional)** — Pin **`design_mode`**? Custom **`output_dir`**? Disable in-slide motion with **`page_animations: false`**?
+`request.json` / OpenClaw (no shell pipe): see **[SKILL.md](SKILL.md)** (“跑前与用户确认”, “最小执行”).
 
-For the full checklist and `request.json` usage (no shell pipe), see **`SKILL.md`** (“Agent 触发后的交互” and “OpenClaw / 受限 exec”).
+### Pre-run dependencies (see SKILL)
+
+No single upfront probe; missing **LLM, ffmpeg/ffprobe, TTS, Feishu** setup fails at the relevant step (stderr). Before the first run, read **[SKILL.md](SKILL.md)** — **「依赖不足时会发生什么」** and **「依赖准备清单」** (copy-paste checks); pre-run checklist item **6** is the dependency gate.
 
 ### How `design_mode` is resolved
 
 Matches the **Design themes** section above. When `design_mode` is **not** in the current request JSON, resolution order is:
 
-1. **`recommended_design_mode`** from Step 0 in `project.json` (when the LLM returns the object wrapper with a valid theme id).
+1. **`recommended_design_mode`** from Step0 in `project.json` (when the LLM returns the object wrapper with a valid theme id).
 2. **`design_mode`** in `project.json` if set and not the default `electric-studio`.
-3. **Content-keyword rules** (`inferContentType` + `CONTENT_TYPE_MAP`), e.g. humanities / curation → `dark-botanical`.
+3. **Content-keyword rules** (`inferContentType` + `CONTENT_TYPE_MAP`), e.g. humanities / curation → **`dark-botanical`**.
 
 An explicit `design_mode` in the **current** `executor.js` JSON always wins.
 
@@ -118,7 +134,7 @@ An explicit `design_mode` in the **current** `executor.js` JSON always wins.
 
 Step 0 structures content into scenes with suggested layouts; Step 2 **infers and rhythm-corrects** variants (so consecutive slides do not all look identical). `layout_hint` tweaks composition **without swapping the HTML template**. For full manual control, edit `scenes.json` / `design_params.json` and re-run from the relevant step.
 
----
+* * *
 
 ## Quick Start
 
@@ -130,7 +146,7 @@ npm install
 
 # 2. Configure
 cp .env.example .env
-# Edit .env → add MINIMAX_API_KEY (required)
+# Edit .env → follow .env.example for Step0/1 LLM and optional services
 
 # 3. Run (one command)
 echo '{"command":"all","source":"./examples/test_article.md","format":"html","output_dir":"./output"}' | node executor.js
@@ -154,7 +170,7 @@ echo '{"command":"all","source":"./article.md","format":"video","output_dir":"./
 echo '{"command":"all","source":"./article.md","format":["pdf","html"],"output_dir":"./out"}' | node executor.js
 ```
 
----
+* * *
 
 ## Pipeline
 
@@ -162,10 +178,10 @@ echo '{"command":"all","source":"./article.md","format":["pdf","html"],"output_d
 Source (Feishu / .md / URL)
   │
   ▼
-Step 0 ── Content Analysis ──────── MiniMax LLM → scenes.json
+Step 0 ── Content Analysis ──────── LLM (HTTP, see .env) → scenes.json
   │
   ▼
-Step 1 ── Script Generation ─────── MiniMax LLM → scenes[].script
+Step 1 ── Script Generation ─────── LLM (HTTP) → scenes[].script
   │
   ▼
 Step 2 ── Design Parameters ─────── Local presets → design_params.json
@@ -188,7 +204,7 @@ Step 7 ── Delivery Channel ─────── local (default) / feishu
 
 Every step reads and writes JSON to disk. You can re-run any step in isolation, inspect intermediates, or hand-edit `scenes.json` before continuing.
 
----
+* * *
 
 ## Requirements
 
@@ -197,7 +213,7 @@ Every step reads and writes JSON to disk. You can re-run any step in isolation, 
 | ------------------- | ------------------------------------- | ----------------------------------------- |
 | **Node.js ≥ 18**    | Runtime                               | [nodejs.org](https://nodejs.org/)         |
 | **Google Chrome**   | Screenshots + PDF (Step 4/6)          | Usually pre-installed                     |
-| **MiniMax API Key** | Content analysis + scripts (Step 0/1) | [minimax.chat](https://api.minimax.chat/) |
+| **LLM (Step0/1)** | Content analysis + scripts | See **`.env.example`** (**`MINIMAX_*` recommended**; otherwise **`LLM_*`**) |
 | `edge-tts`          | TTS narration (Step 5, video only)    | `pip install edge-tts`                    |
 | `ffmpeg`            | Video encoding (Step 6, video only)   | `brew install ffmpeg`                     |
 | `lark-cli`          | Feishu publishing (Step 7, optional)  | `npm i -g @larksuite/cli`                 |
@@ -208,17 +224,24 @@ Every step reads and writes JSON to disk. You can re-run any step in isolation, 
 Copy `.env.example` to `.env` and fill in:
 
 ```ini
-# Required
+# Step0/1 LLM: prefer MINIMAX_* (MiniMax); if no MiniMax key, use LLM_* (other compatible endpoints; MINIMAX_* wins if both set)
 MINIMAX_API_KEY=sk-...
 MINIMAX_MODEL=MiniMax-M2.7-highspeed
 MINIMAX_BASE_URL=https://api.minimax.chat/v1
+# LLM_API_KEY=sk-...
+# LLM_MODEL=gpt-4o-mini
+# LLM_BASE_URL=https://api.openai.com/v1
 
 # Optional — Feishu integration
 FEISHU_APP_ID=cli_...
 FEISHU_APP_SECRET=...
 ```
 
----
+### Step0/1 and JSON (implementation)
+
+Step0/1 call a **configured LLM over HTTP** (**`MINIMAX_*` recommended**; if no MiniMax key, use **`LLM_*`** — see **`.env.example`**; when both are set, **`MINIMAX_*` wins**). Implementation lives in **`steps/utils/minimax_utils.js`**: OpenAI Chat Completions–compatible HTTP, JSON extraction, and backoff on HTTP 429/5xx and parse failures. See **[CLAUDE.md](CLAUDE.md)** (post-`refs/` *Roadmap* block, heading **P2 — LLM 稳定性优化**) for details and limits.
+
+* * *
 
 ## Output Structure
 
@@ -241,12 +264,17 @@ output/
 └── MANIFEST.md            # Delivery manifest (channel=local)
 ```
 
-### `format=html`: two browser entrypoints (important for agents)
+### format=html: two browser entrypoints (delivery)
 
-- **`presentation.html`** loads **`page_*.html`** in the **same directory** via **iframe**—that is where **in-slide DOM, hover, and CSS entrance animations** work. Ship the **whole output folder** (at least `presentation.html` + every `page_*.html`), or a zip of it. **Do not** hand users a single “bundled” HTML and call it the interactive deck.
-- **`presentation_static.html`** (or any **single-file** carousel that only embeds PNG screenshots) is a **bitmap flipbook** aligned with PDF frames—fine for one-file sharing, but **no** interactive behavior inside each slide’s template. Don’t label it the same as the iframe primary entry.
+| File | Works as a single file? | Must ship with | Motion / interaction |
+| --- | --- | --- | --- |
+| **`presentation.html`** | **No** (iframe shell) | **All** `page_001.html` … `page_NNN.html` in the **same directory** | Yes: hover + CSS entrance inside iframe |
+| **`presentation_static.html`** | **Yes** (PNG base64) | Nothing else | No in-template interaction; static flipbook aligned with PDF |
 
----
+- For **`presentation.html`**, ship at least that file + **every `page_*.html`** (whole folder or zip). The file includes an HTML comment after `<!DOCTYPE>` reminding you.
+- **Single-file sharing**: use **`presentation_static.html`** or **PDF**; do not equate the static carousel with the interactive iframe entry.
+
+* * *
 
 ## Step-by-Step Usage
 
@@ -277,27 +305,28 @@ echo '{"command":"step6","format":["pdf","html"],"scenes":"'"$P"'/scenes.json","
 echo '{"command":"step7","channel":"local","output_dir":"'"$P"'"}' | node executor.js
 ```
 
----
+* * *
 
-## Agent Integration
+## Automation & tool integration
 
-SlideForge exposes a standard JSON-in / JSON-out interface via `stdin` → `executor.js` → `stdout`, making it compatible with any AI agent framework:
+`stdin` → `executor.js` → `stdout`; JSON contract in [_meta.json](_meta.json); **human-oriented execution notes** in [SKILL.md](SKILL.md).
 
-- **Claude Code** — use as a skill via `SKILL.md`
-- **OpenClaw** — use `_meta.json` for auto-discovery
-- **Custom agents** — pipe JSON commands to `node executor.js`
+- **Claude Code, etc.** — register `SKILL.md` per client rules
+- **OpenClaw** — discover package via `_meta.json`
+- **Scripts / CI** — pipe one JSON line or `node executor.js ./request.json`
 
-See `[_meta.json](_meta.json)` for the full input/output schema and `[SKILL.md](SKILL.md)` for the agent skill specification.
+Contributor and debugging notes: [CLAUDE.md](CLAUDE.md).
 
----
+* * *
 
 ## Project Structure
 
 ```
 slide-forge/
 ├── executor.js                     # Entry point — routes commands to steps
-├── _meta.json                      # Agent integration schema
-├── SKILL.md                        # Agent skill specification
+├── _meta.json                      # Host schema (shipped with npm)
+├── SKILL.md                        # Execution notes (command / deps / delivery)
+├── CLAUDE.md                       # In-repo dev guide (samples, steps, Roadmap, LLM)
 ├── steps/
 │   ├── step0_analyze.js            # Content analysis (MiniMax LLM)
 │   ├── step1_script.js             # Script generation (MiniMax LLM)
@@ -311,7 +340,8 @@ slide-forge/
 │   ├── step7_publish.js            # Feishu publishing (internal)
 │   └── utils/
 │       ├── content_extractor.js    # Multi-source content extraction
-│       ├── llm_client.js           # MiniMax HTTP client
+│       ├── minimax_utils.js        # Step0/1: MiniMax chat + JSON rules/extract + retries
+│       ├── llm_client.js           # MiniMax HTTP (legacy compat)
 │       ├── tool-locator.js         # System tool auto-discovery
 │       └── step-utils.js           # Shared utilities
 ├── utils/
@@ -329,20 +359,18 @@ slide-forge/
 │   ├── full_variant_test.md        # Full variant coverage test
 │   ├── four_new_variants_scenes.json # compare / process_flow / architecture_stack / funnel smoke deck
 │   └── scenes_example.json         # Manual scenes.json reference
-├── SKILL.md                        # Agent skill (YAML + usage; published in npm tarball)
-├── _meta.json                      # Agent manifest (version, schema, executor pointer)
 ├── .env.example                    # Environment variable template
 ├── CHANGELOG.md                    # Version history (user-facing)
 └── package.json
 ```
 
----
+* * *
 
 ## Contributing
 
 1. Fork the repo
 2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Follow the design principles:
+3. Follow the design principles (see **[CLAUDE.md](CLAUDE.md)** for extension steps and grep debugging):
   - **Templates over code** — all visual decisions live in `samples/*.html`, not in generator logic
   - **Fixed pixels** — templates use `px` units (1920×1080 target), never `rem`/`vw`
   - **Generator is a pipe** — load template → replace tokens → write file
@@ -350,7 +378,7 @@ slide-forge/
 4. Test with `npm run test:e2e`
 5. Open a PR
 
----
+* * *
 
 ## License
 

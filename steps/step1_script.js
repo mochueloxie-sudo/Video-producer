@@ -15,8 +15,8 @@
 
 const fs   = require('fs');
 const path = require('path');
-const https = require('https');
 const { ensureDir, writeResult } = require('./utils/step-utils');
+const { callMiniMaxJson, JSON_SYSTEM_PROMPT } = require('./utils/minimax_utils');
 
 // Load .env from project root if env vars not already set
 (function loadEnv() {
@@ -31,55 +31,6 @@ const { ensureDir, writeResult } = require('./utils/step-utils');
     if (k && v && !process.env[k]) process.env[k] = v;
   }
 })();
-
-// ─── MiniMax client ────────────────────────────────────────────────────────────
-
-const MINIMAX_BASE_URL = process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1';
-const MINIMAX_MODEL    = process.env.MINIMAX_MODEL    || 'MiniMax-M2.7-highspeed';
-const MINIMAX_API_KEY  = process.env.MINIMAX_API_KEY;
-
-async function callMiniMax(messages, { maxTokens = 4000 } = {}) {
-  const apiKey = MINIMAX_API_KEY;
-  if (!apiKey) throw new Error('MINIMAX_API_KEY env var is required for Step 1');
-
-  const body = JSON.stringify({
-    model: MINIMAX_MODEL,
-    messages,
-    max_tokens: maxTokens,
-    temperature: 0.7
-  });
-
-  return new Promise((resolve, reject) => {
-    const url = new URL(`${MINIMAX_BASE_URL}/chat/completions`);
-    const req = https.request({
-      hostname: url.hostname,
-      path: url.pathname + url.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Length': Buffer.byteLength(body)
-      }
-    }, res => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.error) return reject(new Error(`MiniMax API error: ${json.error.message || JSON.stringify(json.error)}`));
-          const text = json.choices?.[0]?.message?.content;
-          if (!text) return reject(new Error(`Unexpected MiniMax response: ${data.slice(0, 300)}`));
-          resolve(text);
-        } catch (e) {
-          reject(new Error(`MiniMax JSON parse failed: ${data.slice(0, 300)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
 
 // ─── Scene → content summary helper ───────────────────────────────────────────
 
@@ -152,8 +103,9 @@ function buildPrompt(scenes, language) {
 - 总结页：简短收尾，有力呼吁或总结金句
 - 不要使用"首先""其次""最后"等机械词
 - 直接以播出文字作答，不加任何前缀
+- 只输出 JSON：不要 markdown 围栏，不要在 JSON 前后写说明
 
-请返回一个 JSON 数组，格式如下（仅返回 JSON，不要 markdown 代码块）：
+请返回一个 JSON 数组，格式如下：
 [
   { "id": 1, "script": "..." },
   { "id": 2, "script": "..." },
@@ -199,19 +151,13 @@ process.stdin.on('end', async () => {
     process.stderr.write(`📝 Step 1: generating scripts for ${scenes.length} scenes (lang=${language})…\n`);
 
     const prompt = buildPrompt(scenes, language);
-    const raw = await callMiniMax([{ role: 'user', content: prompt }], { maxTokens: 4000 });
-
-    // Parse response
-    let scripts;
-    try {
-      const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-      scripts = JSON.parse(cleaned);
-    } catch (e) {
-      // Fallback: try to extract JSON array
-      const arrMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      if (!arrMatch) throw new Error(`MiniMax did not return valid JSON:\n${raw.slice(0, 500)}`);
-      scripts = JSON.parse(arrMatch[0]);
-    }
+    const scripts = await callMiniMaxJson(
+      [
+        { role: 'system', content: JSON_SYSTEM_PROMPT },
+        { role: 'user', content: prompt },
+      ],
+      { maxTokens: 4000, temperature: 0.7 },
+    );
 
     if (!Array.isArray(scripts)) throw new Error('Expected JSON array from MiniMax');
 

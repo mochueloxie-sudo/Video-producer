@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>{{TITLE}}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,700;1,6..96,400&family=DM+Sans:wght@300;400;500;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* Outer frame: same as 02_panel — shared variants never include .paper / .tabs */
+  body.vp-notebook-outer {
+    width: 1920px; height: 1080px;
+    background: #2d2d2d !important;
+    font-family: 'DM Sans', 'PingFang SC', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    padding: 0 !important; margin: 0 !important;
+  }
+  .paper {
+    position: relative;
+    width: 1720px; height: 900px;
+    background: #f8f6f1;
+    padding: 72px 80px 72px 130px;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.45);
+    display: flex; flex-direction: column;
+  }
+  .tabs {
+    position: absolute; left: -18px; top: 0; bottom: 0;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .tab { width: 18px; height: 140px; border-radius: 6px 0 0 6px; margin: 8px 0; }
+  .tab-1 { background: #98d4bb; width: 24px; }
+  .tab-2 { background: #c7b8ea; }
+  .tab-3 { background: #f4b8c5; }
+  .tab-4 { background: #a8d8ea; }
+  .tab-5 { background: #ffe6a7; }
+  /* Shared slide markup lives here; layout-* / density-* stay on body (descendant selectors still match) */
+  .vp-shell-slot {
+    flex: 1; min-height: 0; width: 100%;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  /* Align hairline / page number with theme panel slides (shared used body-relative coords) */
+  .vp-notebook-outer .vp-shell-slot .hairline {
+    position: absolute !important;
+    bottom: 56px !important; left: 0 !important; right: 0 !important;
+    height: 1px; background: #d8d2c8;
+  }
+  .vp-notebook-outer .vp-shell-slot .page-num {
+    position: absolute !important;
+    bottom: 32px !important; right: 0 !important;
+    font-size: 12px; color: #b0aa9e; letter-spacing: 0.1em;
+  }
+</style>
+__VP_SHARED_HEAD__
+</head>
+<body class="vp-notebook-outer">
+<div class="paper">
+  <div class="tabs">
+    <div class="tab tab-1"></div><div class="tab tab-2"></div>
+    <div class="tab tab-3"></div><div class="tab tab-4"></div>
+    <div class="tab tab-5"></div>
+  </div>
+  <div class="vp-shell-slot">
+__VP_SHARED_BODY__
+  </div>
+</div>
+</body>
+</html>

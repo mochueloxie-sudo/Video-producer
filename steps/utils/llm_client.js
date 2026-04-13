@@ -1,22 +1,20 @@
-// LLM client — MiniMax HTTP wrapper with retry helper
-// Step 0 / Step 1 直接在各自文件中调用 MiniMax；此文件保留供未来扩展使用
+// LLM client — OpenAI Chat Completions 兼容 HTTP（历史兼容入口）
+// Step0 / Step1 已统一走 minimax_utils.js；新代码请 require('./minimax_utils')
 
 const https = require('https');
+const { getLlmConfig } = require('./minimax_utils');
 
 /**
- * 调用 MiniMax Chat Completions API
+ * 调用 Chat Completions API（LLM_* 或 MINIMAX_* 环境变量）
  * @param {Object} params - { messages, model, temperature, ... }
  * @param {number} retries
  */
 async function callMiniMax(params, retries = 3) {
-  const apiKey   = process.env.MINIMAX_API_KEY;
-  const model    = process.env.MINIMAX_MODEL    || 'MiniMax-M2.7-highspeed';
-  const baseUrl  = process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1';
-
-  if (!apiKey) throw new Error('MINIMAX_API_KEY not set');
+  const { apiKey, baseUrl, model } = getLlmConfig();
+  if (!apiKey) throw new Error('Set MINIMAX_API_KEY (recommended) or LLM_API_KEY; see .env.example');
 
   const body = JSON.stringify({ model, ...params });
-  const url  = new URL(`${baseUrl}/chat/completions`);
+  const url = new URL(`${baseUrl}/chat/completions`);
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {

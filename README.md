@@ -4,16 +4,28 @@
 
 [English](README_en.md)
 [更新记录](CHANGELOG.md)
-[Agent 技能：SKILL.md](SKILL.md)
+[SKILL.md（执行说明）](SKILL.md)
+[开发指南：CLAUDE.md](CLAUDE.md)
 [Node.js](https://nodejs.org/)
 [License: MIT](LICENSE)
 [Version](_meta.json)
 
-**本仓库优先面向 AI Agent 使用**：通过标准技能描述与 JSON 契约，让 **Cursor、Codex、OpenClaw / Clawdbot** 等主流 Agent 在沙箱或本机中调用同一套 `executor.js` 流水线（stdin JSON → stdout 结果）。人类开发者也可直接 `node executor.js` 使用。
+**用途**：飞书 / Markdown / URL → **1920×1080** 演示（视频、PDF、交互式 HTML）。入口为 `node executor.js` + stdin 一行 JSON；**Cursor、Codex、OpenClaw** 等客户端可按各自「技能 / 工具」机制挂载本仓库，**执行细节以 [SKILL.md](SKILL.md) 为准**（平台元数据见 `_meta.json`）。
 
-传入飞书文档、Markdown 文件或任意 URL，Pipeline 会使用 MiniMax LLM 分析内容，自动选择 **13 种设计主题**，渲染像素级精确的 HTML 幻灯片，并按你选择的格式打包输出 — 全程自动化。
+从零生成时，Step0/1 会在子进程内调用 **环境变量中配置的 LLM**（变量名见 **`.env.example`**），自动选用 **13 种设计主题** 并渲染 HTML 幻灯片后按 `format` 打包。
 
-**[查看示例输出 →](examples/demo-output/)** 在浏览器中打开 `presentation.html`（iframe 单页，支持 hover / 入场动画）；纯截图轮播见 `presentation_static.html`。
+**[查看示例输出 →](examples/demo-output/)** 在浏览器中打开 `presentation.html`（iframe 壳 + 同目录 `page_*.html`，支持 hover / 入场动画；**勿只拷贝单个 HTML**）；纯截图单文件轮播见 `presentation_static.html`。
+
+## 文档分工
+
+
+| 读者 | 文件 |
+| --- | --- |
+| **使用与执行** | [SKILL.md](SKILL.md) — `command`、入参、Pipeline、交付物、跑前确认、**依赖清单**、`presentation.html` / `presentation_static.html`、飞书与分步示例 |
+| **开发与排障** | [CLAUDE.md](CLAUDE.md) — 样张与 token、`html_generator` / Step2、Roadmap、Step0/1 LLM 工具链（`minimax_utils` 等）、调试 |
+
+
+README 本文保留产品级摘要；**22 变体字段全集、Layout Hint、实现细节** 以 CLAUDE.md 为准。
 
 ## 功能特性
 
@@ -26,9 +38,9 @@
 - **页内动效（HTML / 截图）** — `design_params.page_animations` 与 `page_animation_preset`（`none` / `fade` / `stagger`）；交互式 `presentation.html` 翻页可重播入场；`presentation_static.html` 为纯截图帧与 PDF 对齐
 - **8 个独立步骤** — 运行完整流程或单独重跑任意步骤；所有中间产物持久化到磁盘
 - **大纲 + 逐字稿** — 每次导出都附带 `outline.md` 和 `script.md`
-- **Agent 就绪** — `SKILL.md` + `_meta.json` 与 npm 包同源发布（见下文「Agent 接入必读」）
+- **随包文档** — `SKILL.md`、`CLAUDE.md`、`_meta.json` 与 npm 包同源发布（见「文档分工」与「执行与接入」）
 
----
+* * *
 
 ## 设计主题
 
@@ -36,7 +48,7 @@
 
 仓库内置 **13 套** 成品主题（7 深色 / 6 浅色），并与 **22 种样式变体** 全量打通——换主题只换「电影调色与美术」，内容结构仍可走时间线、漏斗、对照、架构栈等任意组合。
 
-在 JSON 里用 `design_mode` 可**锁定**某一主题 id；不传则由流水线自动选用（优先级与规则见下文 **「Agent 接入必读」→ 主题如何被选中**）。
+在 JSON 里用 `design_mode` 可**锁定**某一主题 id；不传则由流水线自动选用（优先级与规则见下文 **「执行与接入」→ 主题如何被选中**）。
 
 ### 深色主题
 
@@ -65,7 +77,7 @@
 | `split-pastel`      | 柔粉 + 蓝   | 温柔、女性化 |
 
 
----
+* * *
 
 ## 样式变体
 
@@ -76,52 +88,51 @@
 - **流程与结构** — 时间线、横向阶段条与泳道、分层架构栈、转化漏斗、双栏对照（Before/After 等）。
 - **展示与资产** — 图标/emoji 栅格、卡片墙、代码片段、章节导航条、图文混排等。
 
-多数变体还支持 **多种构图密度**（例如多列网格、卡片式排布、左右栏宽窄比例、泳道布局等）；流水线里通过 `layout_hint` 选用，**不必换「样式」即可换版式**。字段名、合法取值与机器可读的变体 id 见 `**SKILL.md`**；推断与校正逻辑见下文 **「Agent 接入必读」→ 样式与布局如何被选中**。
+多数变体还支持 **多种构图密度**（例如多列网格、卡片式排布、左右栏宽窄比例、泳道布局等）；流水线里通过 `layout_hint` 选用，**不必换「样式」即可换版式**。常用变体 id 与入参见 `SKILL.md`；**完整字段与推断规则** 见 `CLAUDE.md`「样张系统」与「step2_design.js 核心逻辑」；下文 **「样式与布局如何被选中」** 为执行顺序摘要。
 
----
+* * *
 
-## Agent 接入必读
+## 执行与接入
 
-面向 **Cursor、Codex、OpenClaw / Clawdbot** 等：将本仓库或 npm 包置于可执行路径后，**务必**阅读并挂载 `**SKILL.md`**（完整 schema 与分步示例与 `_meta.json` 一致）。
+将本仓库或 npm 包置于可执行路径后：**运行方式与 JSON 字段**以 **[SKILL.md](SKILL.md)** 为准；**[_meta.json](_meta.json)** 与包一并发布，供宿主发现、索引与机器校验。改样张或排障用 **[CLAUDE.md](CLAUDE.md)**。
 
+| 文件 | 作用 |
+| --- | --- |
+| **SKILL.md** | **执行说明**：`command`、入参、Pipeline、交付物、跑前确认、依赖清单、13 主题 id、分步示例；**`presentation.html` 须与同目录全部 `page_*.html` 一并分发** |
+| **CLAUDE.md** | 仓库内开发：样张与 token、`html_generator`、Roadmap、Step0/1 与 `steps/utils/minimax_utils.js` 等 |
+| **_meta.json** | 宿主侧：`type: agent`、`executor`、机器可读 `input`/`output`，供 OpenClaw、npm、CI 等 |
+| **executor.js** | 唯一入口：`stdin` 一行 JSON → `node executor.js`（示例见 SKILL.md） |
 
-| 文件                | 作用                                                                                                                                    |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `**SKILL.md**`    | **必选技能包**：YAML 前置元数据（`type: agent`、`input`/`output` schema、**含 13 主题 id 枚举**）+ 分步命令说明与示例；按各 Agent 平台的「技能 / Skill / Plugin」规则挂载到工作区即可。 |
-| `**_meta.json`**  | 轻量机器可读清单（版本、`command` 枚举、`executor` 路径），便于自动化发现与 UI 展示。                                                                               |
-| `**executor.js**` | 唯一入口：`echo '<json>' | node executor.js`；与 `SKILL.md` 中的示例一致。                                                                          |
+`npm pack` / `npm publish` 发布的 tarball 已包含 **SKILL.md**、**CLAUDE.md** 与 **_meta.json**，与 `steps/`、`samples/` 等一并分发。
 
+### 跑流水线前先确认（推荐）
 
-`npm pack` / `npm publish` 发布的 tarball 已包含 **SKILL.md** 与 **_meta.json**，与 `steps/`、`samples/` 等运行所需文件一并分发，无需再手工拷贝技能文件。
+在调用 `executor.js` **之前**宜与用户确认，再写入 `format`、`channel`、`source` 等。**不要**在未确认时默认 `format: "video"`（耗时长，且依赖 FFmpeg、TTS）。
 
-### Agent 触发后先问用户（推荐）
+1. **内容来源** — 飞书、本地 `.md`/`.txt`、网页 URL？（`source`）
+2. **交付格式** — PDF / HTML / 视频 / 多选？（`format`）；含 **video** 需 **FFmpeg**、**edge-tts**（或 macOS **`say`**）
+3. **交付渠道** — 本地 `output_dir` 或飞书？（`channel`）；**feishu** 需 `.env` 凭证及 **`doc_title`**、**`folder_token`** 等
+4. **（可选）** — **`design_mode`**、**`output_dir`**、**`page_animations: false`**？
 
-在代用户调用 `executor.js` **之前**，Agent 宜做简短确认，再把答案写入 JSON 的 `format`、`channel`、`source` 等。**不要**在未确认时默认 `format: "video"`（耗时长，且依赖 FFmpeg、TTS）。
+`request.json`、OpenClaw 无管道写法见 **[SKILL.md](SKILL.md)**（「跑前与用户确认」「最小执行」）。
 
-建议顺序（用户一句话说清时可合并成一条确认）：
+### 跑前依赖（详见 SKILL）
 
-1. **内容来源** — 飞书链接、本地 `.md`/`.txt` 路径，或网页 URL？（`source`）
-2. **交付格式** — 仅 PDF、仅 HTML、仅视频，还是多种都要？（`format`：字符串或数组，如 `["pdf","html"]`）  
-   - 含 **video** 时需本机 **FFmpeg**、**edge-tts**（或降级 macOS `say`），会跑 Step 5。
-3. **交付渠道** — 只要本地 `output_dir` 产物，还是 **发到飞书**？（`channel`：`local` 默认 / `feishu`）  
-   - **feishu** 需 `.env` 中飞书应用凭证，并通常需要 **`doc_title`**、**`folder_token`**；缺则勿调用 `feishu` 或先请用户补全。
-4. **（可选）** — 是否指定 **`design_mode`**、**`output_dir`**、是否关闭 **`page_animations`**？
-
-细节与 `request.json` 文件传参见 **`SKILL.md`** 中「Agent 触发后的交互」与「OpenClaw / 受限 exec」小节。
+流水线**不会**做一键预检；缺 **LLM、FFmpeg/ffprobe、TTS、飞书** 等在对应 Step 失败（见 stderr）。第一次跑前请读 **[SKILL.md](SKILL.md)** 的 **「依赖不足时会发生什么」**、**「依赖准备清单」**（含自检命令）；跑前确认清单第 **6** 条为依赖项。
 
 ### 主题如何被选中（`design_mode`）
 
 与上文「设计主题」展示相对应，执行时的解析顺序如下（**当次 JSON 里显式传入的 `design_mode` 始终最高**）：
 
-1. `project.json` 中 Step 0 写入的 `**recommended_design_mode`**（模型返回对象且 id 合法）。
-2. `project.json` 中的 `**design_mode**`（且不等于默认 `electric-studio`）。
-3. 正文与标题关键词规则（`inferContentType` + `CONTENT_TYPE_MAP`），例如人文 / 社科 / 策展等 → `**dark-botanical**`。
+1. `project.json` 中 Step0 写入的 **`recommended_design_mode`**（对象响应且 id 合法）。
+2. `project.json` 中的 **`design_mode`**（且不等于默认 `electric-studio`）。
+3. 正文与标题关键词规则（`inferContentType` + `CONTENT_TYPE_MAP`），例如人文 / 社科 / 策展等 → **`dark-botanical`**。
 
 ### 样式与布局如何被选中（`content_variant` / `layout_hint`）
 
 Step 0 将内容结构化为场景与建议版式；Step 2 结合规则做 **变体推断与节奏校正**（避免连续多页同一构图显得单调）。`layout_hint` 在**不换 HTML 模板**的前提下微调同一变体的排布。需要完全手工控制时，可编辑 `scenes.json` / `design_params.json` 后从对应 Step 重跑。
 
----
+* * *
 
 ## 快速开始
 
@@ -133,7 +144,7 @@ npm install
 
 # 2. 配置
 cp .env.example .env
-# 编辑 .env → 添加 MINIMAX_API_KEY（必填）
+# 编辑 .env → 按 .env.example 配置 Step0/1 所需 LLM 等
 
 # 3. 运行（一行命令）
 echo '{"command":"all","source":"./examples/test_article.md","format":"html","output_dir":"./output"}' | node executor.js
@@ -157,7 +168,7 @@ echo '{"command":"all","source":"./article.md","format":"video","output_dir":"./
 echo '{"command":"all","source":"./article.md","format":["pdf","html"],"output_dir":"./out"}' | node executor.js
 ```
 
----
+* * *
 
 ## 流程图
 
@@ -165,10 +176,10 @@ echo '{"command":"all","source":"./article.md","format":["pdf","html"],"output_d
 输入源（飞书 / .md / URL）
   │
   ▼
-Step 0 ── 内容分析 ─────────── MiniMax LLM → scenes.json
+Step 0 ── 内容分析 ─────────── LLM（HTTP，见 .env）→ scenes.json
   │
   ▼
-Step 1 ── 逐字稿生成 ───────── MiniMax LLM → scenes[].script
+Step 1 ── 逐字稿生成 ───────── LLM（HTTP）→ scenes[].script
   │
   ▼
 Step 2 ── 设计参数 ─────────── 本地 preset → design_params.json
@@ -191,7 +202,7 @@ Step 7 ── 交付渠道 ─────────── local（默认）/ 
 
 每个步骤都读写磁盘 JSON 文件，支持单独重跑任意步骤、检查中间产物，或手动编辑 `scenes.json` 后继续。
 
----
+* * *
 
 ## 环境要求
 
@@ -200,7 +211,7 @@ Step 7 ── 交付渠道 ─────────── local（默认）/ 
 | ------------------- | -------------------- | ----------------------------------------- |
 | **Node.js ≥ 18**    | 运行环境                 | [nodejs.org](https://nodejs.org/)         |
 | **Google Chrome**   | 截图 + PDF（Step 4/6）   | 通常已预装                                     |
-| **MiniMax API Key** | 内容分析 + 逐字稿（Step 0/1） | [minimax.chat](https://api.minimax.chat/) |
+| **LLM（Step0/1）** | 内容分析 + 逐字稿 | 见 **`.env.example`**（**建议 `MINIMAX_*`**；无 MiniMax 再用 **`LLM_*`**） |
 | `edge-tts`          | TTS 配音（Step 5，仅视频格式） | `pip install edge-tts`                    |
 | `ffmpeg`            | 视频编码（Step 6，仅视频格式）   | `brew install ffmpeg`                     |
 | `lark-cli`          | 飞书发布（Step 7，可选）      | `npm i -g @larksuite/cli`                 |
@@ -211,17 +222,24 @@ Step 7 ── 交付渠道 ─────────── local（默认）/ 
 复制 `.env.example` 到 `.env` 并填写：
 
 ```ini
-# 必填
+# Step0/1 LLM：建议 MINIMAX_*（MiniMax）；若无 key 可改用 LLM_*（其它兼容端点；二者同时存在时 MINIMAX_* 优先）
 MINIMAX_API_KEY=sk-...
 MINIMAX_MODEL=MiniMax-M2.7-highspeed
 MINIMAX_BASE_URL=https://api.minimax.chat/v1
+# LLM_API_KEY=sk-...
+# LLM_MODEL=gpt-4o-mini
+# LLM_BASE_URL=https://api.openai.com/v1
 
 # 可选 — 飞书集成
 FEISHU_APP_ID=cli_...
 FEISHU_APP_SECRET=...
 ```
 
----
+### Step0/1 与 JSON（实现说明）
+
+内容分析与逐字稿在子进程内调用 **已配置的 LLM**（**建议 `MINIMAX_*`**；若无 MiniMax 再填 **`LLM_*`**，见 **`.env.example`**）。实现上 Step0/1 使用 **`steps/utils/minimax_utils.js`**：OpenAI Chat Completions 兼容 HTTP、JSON 抽取与重试。说明与局限见 **[CLAUDE.md](CLAUDE.md)**「备忘与 Roadmap」→「（二）已明确的 Roadmap」→ **P2 — LLM 稳定性优化**。
+
+* * *
 
 ## 输出结构
 
@@ -244,12 +262,17 @@ output/
 └── MANIFEST.md            # 交付清单（channel=local）
 ```
 
-### `format=html`：两种浏览器入口（Agent 交付时注意）
+### format=html：两种浏览器入口（交付时注意）
 
-- **`presentation.html`**：**iframe** 引用同目录 **`page_*.html`**，才有页内 **hover / 入场动画** 等 DOM 交互。请向用户交付 **同一文件夹内的主入口 + 全部 `page_*.html`**（或可打 zip），**不要**只给一个汇总文件就宣称「可交互」。
-- **`presentation_static.html`**（或仅内嵌多页 PNG 的**单文件**轮播）：本质是 **截图翻页**，与 PDF 画面一致，便于单文件分享；**没有**各页模板内部的交互，勿与上面的 iframe 主入口混称。
+| 文件 | 单文件能否独立使用 | 必须与谁一起分发 | 交互 / 动效 |
+| --- | --- | --- | --- |
+| **`presentation.html`** | **否**（iframe 壳） | **须**与同目录全部 `page_001.html` … `page_NNN.html` | 有：各页 hover、页内 CSS 入场 |
+| **`presentation_static.html`** | **是**（内嵌 PNG base64） | 无 | 无模板内交互，静帧翻页，与 PDF 画面对齐 |
 
----
+- 交付 **`presentation.html`** 时：至少该文件 + 全部 **`page_*.html`**（建议整目录或 zip）。生成文件在 `<!DOCTYPE>` 下有 HTML 注释再次提示依赖。
+- **单文件分享**：用 **`presentation_static.html`** 或 **PDF**；勿将静帧轮播说成与 iframe 主入口等价的「全交互幻灯片」。
+
+* * *
 
 ## 分步使用
 
@@ -280,27 +303,28 @@ echo '{"command":"step6","format":["pdf","html"],"scenes":"'"$P"'/scenes.json","
 echo '{"command":"step7","channel":"local","output_dir":"'"$P"'"}' | node executor.js
 ```
 
----
+* * *
 
-## Agent 集成
+## 自动化与工具接入
 
-SlideForge 通过 `stdin` → `executor.js` → `stdout` 暴露标准 JSON 输入/输出接口，兼容任意 AI Agent 框架：
+`stdin` → `executor.js` → `stdout`，JSON 契约见 [_meta.json](_meta.json)；**人类可读执行说明**见 [SKILL.md](SKILL.md)。
 
-- **Claude Code** — 通过 `SKILL.md` 作为 skill 使用
-- **OpenClaw** — 通过 `_meta.json` 自动发现
-- **自定义 Agent** — 向 `node executor.js` 管道传输 JSON 命令
+- **Claude Code 等** — 按客户端要求注册 `SKILL.md`（机制以平台为准）
+- **OpenClaw** — 通过 `_meta.json` 发现包与 schema
+- **脚本 / CI** — 管道传入一行 JSON 或 `node executor.js ./request.json`
 
-详见 `[_meta.json](_meta.json)` 的完整输入/输出 schema，以及 `[SKILL.md](SKILL.md)` 的 Agent skill 规范。
+开发与排障：[CLAUDE.md](CLAUDE.md)。
 
----
+* * *
 
 ## 项目结构
 
 ```
 slide-forge/
 ├── executor.js                     # 入口 — 将命令路由到各步骤
-├── _meta.json                      # Agent 集成 schema
-├── SKILL.md                        # Agent skill 规范
+├── _meta.json                      # 宿主 schema（与 npm 同发）
+├── SKILL.md                        # 执行说明（command / 依赖 / 交付）
+├── CLAUDE.md                       # 仓库内开发指南（样张、Step、Roadmap、LLM）
 ├── steps/
 │   ├── step0_analyze.js            # 内容分析（MiniMax LLM）
 │   ├── step1_script.js             # 逐字稿生成（MiniMax LLM）
@@ -314,7 +338,8 @@ slide-forge/
 │   ├── step7_publish.js            # 飞书发布（内部）
 │   └── utils/
 │       ├── content_extractor.js    # 多源内容提取
-│       ├── llm_client.js           # MiniMax HTTP 客户端
+│       ├── minimax_utils.js        # Step0/1：MiniMax Chat + JSON 约束/抽取 + 重试
+│       ├── llm_client.js           # MiniMax HTTP（历史兼容）
 │       ├── tool-locator.js         # 系统工具自动发现
 │       └── step-utils.js           # 共享工具
 ├── utils/
@@ -332,20 +357,18 @@ slide-forge/
 │   ├── full_variant_test.md        # 全变体覆盖测试
 │   ├── four_new_variants_scenes.json # compare / process_flow / architecture_stack / funnel 目检
 │   └── scenes_example.json         # 手动 scenes.json 参考
-├── SKILL.md                        # Agent 技能包（YAML + 用法，与 npm 包一并发布）
-├── _meta.json                      # Agent 清单（版本、schema、executor 指针）
 ├── .env.example                    # 环境变量模板
 ├── CHANGELOG.md                    # 版本与用户向变更记录
 └── package.json
 ```
 
----
+* * *
 
 ## 参与贡献
 
 1. Fork 本仓库
 2. 创建功能分支（`git checkout -b feat/my-feature`）
-3. 遵循设计原则：
+3. 遵循设计原则（扩展步骤与 grep 调试见 **[CLAUDE.md](CLAUDE.md)**）：
   - **模板优于代码** — 所有视觉决策放在 `samples/*.html`，不写在生成器逻辑里
   - **固定像素** — 模板使用 `px` 单位（目标 1920×1080），不用 `rem`/`vw`
   - **生成器是管道** — 加载模板 → 替换 token → 写出文件
@@ -353,7 +376,7 @@ slide-forge/
 4. 用 `npm run test:e2e` 测试
 5. 提交 PR
 
----
+* * *
 
 ## 许可证
 

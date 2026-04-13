@@ -90,6 +90,9 @@ process.stdin.on('end', async () => {
           if (liveOk) {
             outputs.push(liveOut);
             console.error(`   ✅ presentation.html（主入口 · iframe 单页 · 动效 + hover）`);
+            const relOut = path.relative(process.cwd(), outputPath).replace(/\\/g, '/') || '.';
+            console.error(`   💡 iframe 加载 page_*.html：勿用 file://（常被浏览器拦截）。在项目根执行：`);
+            console.error(`      npm run preview:html -- ${relOut}`);
           }
           break;
         }
@@ -589,6 +592,7 @@ function generateHTMLPresentationLive(htmlDir, scenes, outPath) {
   const metaJSON = JSON.stringify(metaArr);
 
   const html = `<!DOCTYPE html>
+<!-- SlideForge: 本文件为 iframe 轮播壳，必须与同目录 page_001.html、page_002.html… 一并分发，单独拷贝无效。单文件内嵌截图轮播请用 presentation_static.html。 -->
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
@@ -758,7 +762,7 @@ function generateHTMLPresentationLive(htmlDir, scenes, outPath) {
 </head>
 <body>
 <div class="slide-container" id="app">
-  <div class="live-hint">主入口：可交互单页（hover / 入场动画）· 纯截图轮播请打开 presentation_static.html</div>
+  <div class="live-hint">可交互单页（hover / 入场动画）。若 iframe 空白：请用本地 HTTP 打开本目录（见终端 npm run preview:html）。静态轮播打开 presentation_static.html</div>
   <div class="slide-stage">
     <div class="scale-root" id="scaleRoot">
       <iframe id="slideFrame" title="slide"></iframe>

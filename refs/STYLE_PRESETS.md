@@ -4,7 +4,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 
 **Viewport CSS:** For mandatory base styles, see [viewport-base.css](viewport-base.css). Include in every presentation.
 
----
+* * *
 
 ## Dark Themes
 
@@ -35,7 +35,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Navigation breadcrumbs with active/inactive opacity states
 - Grid-based layout for precise alignment
 
----
+* * *
 
 ### 2. Electric Studio
 
@@ -64,7 +64,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Quote typography as hero element
 - Minimal, confident spacing
 
----
+* * *
 
 ### 3. Creative Voltage
 
@@ -92,7 +92,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Neon badges/callouts
 - Script typography for creative flair
 
----
+* * *
 
 ### 4. Dark Botanical
 
@@ -123,7 +123,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Italic signature typography
 - **No illustrations—only abstract CSS shapes**
 
----
+* * *
 
 ## Light Themes
 
@@ -157,7 +157,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Binder hole decorations on left
 - Tab text must scale with viewport: `font-size: clamp(0.5rem, 1vh, 0.7rem)`
 
----
+* * *
 
 ### 6. Pastel Geometry
 
@@ -188,7 +188,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Consistent pill width, heights: short → medium → tall → medium → short
 - Download/action icon in corner
 
----
+* * *
 
 ### 7. Split Pastel
 
@@ -218,7 +218,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Grid pattern overlay on right panel
 - Rounded CTA buttons
 
----
+* * *
 
 ### 8. Vintage Editorial
 
@@ -246,7 +246,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 - Witty, conversational copy style
 - **No illustrations—only geometric CSS shapes**
 
----
+* * *
 
 ## Specialty Themes
 
@@ -260,7 +260,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 
 **Signature:** Particle backgrounds, neon glow, grid patterns
 
----
+* * *
 
 ### 10. Terminal Green
 
@@ -272,7 +272,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 
 **Signature:** Scan lines, blinking cursor, code syntax styling
 
----
+* * *
 
 ### 11. Swiss Modern
 
@@ -284,7 +284,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 
 **Signature:** Visible grid, asymmetric layouts, geometric shapes
 
----
+* * *
 
 ### 12. Paper & Ink
 
@@ -296,7 +296,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 
 **Signature:** Drop caps, pull quotes, elegant horizontal rules
 
----
+* * *
 
 ## Font Pairing Quick Reference
 
@@ -313,7 +313,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 | Neon Cyber | Clash Display | Satoshi | Fontshare |
 | Terminal Green | JetBrains Mono | JetBrains Mono | JetBrains |
 
----
+* * *
 
 ## DO NOT USE (Generic AI Patterns)
 
@@ -325,7 +325,7 @@ Curated visual styles for Frontend Slides. Each preset is inspired by real desig
 
 **Decorations:** Realistic illustrations, gratuitous glassmorphism, drop shadows without purpose
 
----
+* * *
 
 ## CSS Gotchas
 

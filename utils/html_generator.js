@@ -277,14 +277,45 @@ const DESIGN_TEMPLATES = {
   },
 };
 
-function loadTemplate(designMode, templateName) {
-  // 1. Theme-specific template (highest priority)
-  const tplPath = path.join(__dirname, '..', 'samples', designMode || 'electric-studio', `${templateName}.html`);
-  if (fs.existsSync(tplPath)) return fs.readFileSync(tplPath, 'utf8');
-  // 2. Shared template (CSS-token-based, works for all themes)
+function loadTemplateWithSource(designMode, templateName) {
+  const theme = designMode || 'electric-studio';
+  const tplPath = path.join(__dirname, '..', 'samples', theme, `${templateName}.html`);
+  if (fs.existsSync(tplPath)) {
+    return { html: fs.readFileSync(tplPath, 'utf8'), fromShared: false };
+  }
   const sharedPath = path.join(__dirname, '..', 'samples', 'shared', `${templateName}.html`);
-  if (fs.existsSync(sharedPath)) return fs.readFileSync(sharedPath, 'utf8');
-  return null;
+  if (fs.existsSync(sharedPath)) {
+    return { html: fs.readFileSync(sharedPath, 'utf8'), fromShared: true };
+  }
+  return { html: null, fromShared: false };
+}
+
+function loadTemplate(designMode, templateName) {
+  return loadTemplateWithSource(designMode, templateName).html;
+}
+
+/** Strip duplicate title; shell already has {{TITLE}}. */
+function stripTitleFromHeadInner(headInner) {
+  return String(headInner || '').replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, '').trim();
+}
+
+/**
+ * notebook-tabs + shared-only variant: wrap shared full document in theme .paper / .tabs shell.
+ * Keeps a single <body> so layout_hint / density injection unchanged.
+ */
+function mergeNotebookTabsSharedIntoShell(sharedFullHtml) {
+  const shellPath = path.join(__dirname, '..', 'samples', 'notebook-tabs', '_content_shell.html');
+  if (!fs.existsSync(shellPath)) return sharedFullHtml;
+  const headM = sharedFullHtml.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  const bodyM = sharedFullHtml.match(/<body([^>]*)>([\s\S]*?)<\/body>/i);
+  if (!headM || !bodyM) return sharedFullHtml;
+  const headFrag = stripTitleFromHeadInner(headM[1]);
+  const bodyInner = bodyM[2].trim();
+  let shell = fs.readFileSync(shellPath, 'utf8');
+  if (!shell.includes('__VP_SHARED_HEAD__') || !shell.includes('__VP_SHARED_BODY__')) {
+    return sharedFullHtml;
+  }
+  return shell.split('__VP_SHARED_HEAD__').join(headFrag).split('__VP_SHARED_BODY__').join(bodyInner);
 }
 
 function escapeHtml(str) {
@@ -845,9 +876,18 @@ function generateContent(scene, tpl, designMode, pageNum, totalPages, designPara
     'architecture_stack': '22_architecture_stack',
     'funnel':             '23_funnel',
   };
-  let html = loadTemplate(designMode || 'electric-studio', variantMap[variant] || 'content');
-  if (!html) html = loadTemplate(designMode || 'electric-studio', 'content');
-  if (!html) html = loadTemplate(designMode || 'electric-studio', '01_text_only');
+  const designModeResolved = designMode || 'electric-studio';
+  function loadContentTemplate(templateKey) {
+    const { html: tplHtml, fromShared } = loadTemplateWithSource(designModeResolved, templateKey);
+    if (!tplHtml) return null;
+    if (designModeResolved === 'notebook-tabs' && fromShared) {
+      return mergeNotebookTabsSharedIntoShell(tplHtml);
+    }
+    return tplHtml;
+  }
+  let html = loadContentTemplate(variantMap[variant] || 'content');
+  if (!html) html = loadContentTemplate('content');
+  if (!html) html = loadContentTemplate('01_text_only');
   if (!html) return null;
 
   // ── 2. Base tokens ───────────────────────────────────────────────────────

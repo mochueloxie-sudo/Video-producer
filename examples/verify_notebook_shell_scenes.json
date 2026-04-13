@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "type": "cover",
+    "title": "Notebook 单壳验证",
+    "subtitle": "shared 变体包在 .paper 内 · 页内 stagger 动效",
+    "body": []
+  },
+  {
+    "id": 2,
+    "type": "content",
+    "content_variant": "two_col",
+    "eyebrow": "SHARED · TWO COL",
+    "title": "双栏页应出现米色纸与左侧色条",
+    "layout_hint": "wide-left",
+    "body": ["左栏：说明第一段。", "左栏：第二段，用于占高。"],
+    "key_points": ["要点一（stagger）", "要点二", "要点三"],
+    "script_hint": "看纸面与 tabs；右栏 hover 列表项。"
+  },
+  {
+    "id": 3,
+    "type": "content",
+    "content_variant": "timeline",
+    "eyebrow": "SHARED · TIMELINE",
+    "title": "时间线同样在奶油纸内",
+    "steps": [
+      { "label": "阶段 A", "desc": "第一步说明" },
+      { "label": "阶段 B", "desc": "第二步说明" },
+      { "label": "阶段 C", "desc": "第三步说明" }
+    ],
+    "script_hint": "竖向步骤条应在纸内，非整屏深灰底。"
+  },
+  {
+    "id": 4,
+    "type": "content",
+    "content_variant": "panel",
+    "eyebrow": "THEME · PANEL",
+    "title": "本页用主题自带 02_panel（不走 shared 包壳）",
+    "key_points": ["对比：无 vp-shell-slot 包裹", "仍是 notebook-tabs 目录样张"],
+    "script_hint": "与第 2、3 页视觉框架应一致（都有 paper + tabs）。"
+  }
+]

@@ -15,9 +15,9 @@
 
 const fs   = require('fs');
 const path = require('path');
-const https = require('https');
 const { ensureDir, writeResult } = require('./utils/step-utils');
 const { extract }                = require('./utils/content_extractor');
+const { callMiniMaxJson, JSON_SYSTEM_PROMPT, getLlmConfig } = require('./utils/minimax_utils');
 
 // Load .env from project root if env vars not already set
 (function loadEnv() {
@@ -32,49 +32,6 @@ const { extract }                = require('./utils/content_extractor');
     if (k && v && !process.env[k]) process.env[k] = v;
   }
 })();
-
-// ─── MiniMax client ────────────────────────────────────────────────────────────
-
-async function callMiniMax(messages, { maxTokens = 8000 } = {}) {
-  const apiKey  = process.env.MINIMAX_API_KEY;
-  const baseUrl = process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1';
-  const model   = process.env.MINIMAX_MODEL    || 'MiniMax-M2.7-highspeed';
-
-  if (!apiKey) throw new Error('MINIMAX_API_KEY env var is required');
-
-  const body = JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.3 });
-
-  return new Promise((resolve, reject) => {
-    const url = new URL(`${baseUrl}/chat/completions`);
-    const req = https.request({
-      hostname: url.hostname,
-      path: url.pathname + url.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Length': Buffer.byteLength(body)
-      }
-    }, res => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.error) return reject(new Error(`MiniMax error: ${json.error.message || JSON.stringify(json.error)}`));
-          const text = json.choices?.[0]?.message?.content;
-          if (!text) return reject(new Error(`Unexpected MiniMax response: ${data.slice(0, 300)}`));
-          resolve(text);
-        } catch (e) {
-          reject(new Error(`MiniMax JSON parse failed: ${data.slice(0, 300)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
 
 // ─── Language detection ────────────────────────────────────────────────────────
 
@@ -342,9 +299,15 @@ process.stdin.on('end', async () => {
     );
 
     // ── Phase B: LLM structuring ──────────────────────────────────────────────
-    process.stderr.write(`🤖 Phase B: Structuring with MiniMax (${process.env.MINIMAX_MODEL || 'MiniMax-M2.7-highspeed'})…\n`);
+    process.stderr.write(`🤖 Phase B: Structuring with LLM (${getLlmConfig().model})…\n`);
     const prompt = buildStructurePrompt(extracted, language);
-    const raw = await callMiniMax([{ role: 'user', content: prompt }], { maxTokens: 8000 });
+    const parsed = await callMiniMaxJson(
+      [
+        { role: 'system', content: JSON_SYSTEM_PROMPT },
+        { role: 'user', content: prompt },
+      ],
+      { maxTokens: 8000, temperature: 0.3 },
+    );
 
     const THEME_IDS = new Set([
       'electric-studio', 'bold-signal', 'creative-voltage', 'dark-botanical', 'neon-cyber', 'terminal-green',
@@ -353,22 +316,14 @@ process.stdin.on('end', async () => {
 
     let scenes;
     let recommended_design_mode = null;
-    try {
-      const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-      const parsed = JSON.parse(cleaned);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.scenes)) {
-        scenes = parsed.scenes;
-        const rec = parsed.recommended_design_mode;
-        if (rec && THEME_IDS.has(String(rec).trim())) recommended_design_mode = String(rec).trim();
-      } else if (Array.isArray(parsed)) {
-        scenes = parsed;
-      } else {
-        throw new Error('Expected scenes array or { recommended_design_mode, scenes }');
-      }
-    } catch (e) {
-      const arrMatch = raw.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      if (!arrMatch) throw new Error(`MiniMax did not return valid JSON:\n${raw.slice(0, 500)}`);
-      scenes = JSON.parse(arrMatch[0]);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.scenes)) {
+      scenes = parsed.scenes;
+      const rec = parsed.recommended_design_mode;
+      if (rec && THEME_IDS.has(String(rec).trim())) recommended_design_mode = String(rec).trim();
+    } else if (Array.isArray(parsed)) {
+      scenes = parsed;
+    } else {
+      throw new Error('Expected scenes array or { recommended_design_mode, scenes }');
     }
 
     if (!Array.isArray(scenes) || scenes.length === 0) {
