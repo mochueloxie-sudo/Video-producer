@@ -25,8 +25,6 @@
 | **开发与排障** | [CLAUDE.md](CLAUDE.md) — 样张与 token、`html_generator` / Step2、Roadmap、Step0/1 LLM 工具链（`minimax_utils` 等）、调试 |
 
 
-README 本文保留产品级摘要；**22 变体字段全集、Layout Hint、实现细节** 以 CLAUDE.md 为准。
-
 ## 功能特性
 
 - **13 种设计主题** — 7 深色 + 6 浅色，每套均为完整 1920×1080 样张包，气质与色板各不相同，且均覆盖下方全部样式变体（见「设计主题」）
